@@ -87,7 +87,7 @@
                                     class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                     Menunggu Acc
                                 </span>
-                            @elseif ($pinjam->status === 'disetujui')
+                            @elseif ($pinjam->status === 'disetujui' || $pinjam->status === 'disetujui_jadwal')
                                 <span
                                     class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
                                     Jadwal Disetujui
@@ -232,7 +232,7 @@
                                     Serahkan Langsung
                                 </button>
                             </form>
-                        @elseif ($pinjam->status === 'disetujui')
+                        @elseif ($pinjam->status === 'disetujui' || $pinjam->status === 'disetujui_jadwal')
                             <!-- Tombol Batalkan / Tolak -->
                             <form action="{{ route('toolman.peminjaman.reject', $pinjam->id) }}" method="POST" class="inline"
                                   data-confirm="true"

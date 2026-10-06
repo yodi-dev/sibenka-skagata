@@ -27,10 +27,12 @@ class PeminjamanController extends Controller
         $query = Peminjaman::with(['user', 'bengkel', 'detailPeminjamans.barang'])
             ->where('bengkel_id', $bengkelId);
 
+        $pendingStatuses = ['pending', 'menunggu_acc', 'disetujui', 'disetujui_jadwal'];
+
         if ($tab === 'pending') {
-            $query->whereIn('status', ['pending', 'menunggu_acc', 'disetujui'])->latest('tanggal_pinjam');
+            $query->whereIn('status', $pendingStatuses)->latest('tanggal_pinjam');
         } else {
-            $query->whereNotIn('status', ['pending', 'menunggu_acc', 'disetujui'])->latest('tanggal_pinjam');
+            $query->whereNotIn('status', $pendingStatuses)->latest('tanggal_pinjam');
         }
 
         if ($search = $request->input('search')) {
@@ -43,11 +45,11 @@ class PeminjamanController extends Controller
         $peminjamans = $query->paginate(10)->withQueryString();
 
         $pendingCount = Peminjaman::where('bengkel_id', $bengkelId)
-            ->whereIn('status', ['pending', 'menunggu_acc', 'disetujui'])
+            ->whereIn('status', $pendingStatuses)
             ->count();
 
         $riwayatCount = Peminjaman::where('bengkel_id', $bengkelId)
-            ->whereNotIn('status', ['pending', 'menunggu_acc', 'disetujui'])
+            ->whereNotIn('status', $pendingStatuses)
             ->count();
 
         return view('toolman.peminjaman.index', compact('peminjamans', 'bengkel', 'tab', 'pendingCount', 'riwayatCount'));

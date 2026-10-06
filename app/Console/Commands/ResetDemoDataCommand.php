@@ -50,7 +50,7 @@ class ResetDemoDataCommand extends Command
             Pengadaan::query()->delete();
             StockMovement::query()->delete();
 
-            // 2. Normalkan kembali stok barang ke posisi awal
+            // 2. Normalkan kembali stok barang ke posisi awal (stok_reserved otomatis 0 karena transaksi dihapus)
             Barang::query()->update([
                 'stok_tersedia' => DB::raw('stok_total'),
                 'stok_dipinjam' => 0,

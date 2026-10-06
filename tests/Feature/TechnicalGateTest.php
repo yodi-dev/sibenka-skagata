@@ -831,5 +831,90 @@ class TechnicalGateTest extends TestCase
         $resCheckActiveView->assertStatus(200);
         $resCheckActiveView->assertSee('Sedang Dipinjam');
     }
+
+    /**
+     * 12. Tiket disetujui_jadwal muncul di antrean kerja Toolman & dashboard peminjam,
+     *     serta perintah app:reset-demo menormalkan stok_reserved ke 0.
+     */
+    public function test_disetujui_jadwal_visibility_in_queues_and_reset_command(): void
+    {
+        $bengkel = $this->createBengkel('B-SYNC', 'Bengkel Uji Sinkron');
+        $toolman = $this->createUser([
+            'role' => 'toolman',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+        $peminjam = $this->createUser([
+            'role' => 'peminjam',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+
+        $barang = Barang::create([
+            'bengkel_id' => $bengkel->id,
+            'kode_barang' => 'SYNC-001',
+            'nama' => 'Mesin Frais Horizontal',
+            'jenis_barang' => 'inventaris',
+            'satuan' => 'Unit',
+            'stok_total' => 4,
+            'stok_tersedia' => 4,
+            'stok_dipinjam' => 0,
+            'stok_rusak' => 0,
+            'minimum_stok' => 1,
+            'kondisi_baik' => 4,
+            'kondisi_rusak' => 0,
+            'kondisi_hilang' => 0,
+        ]);
+
+        $tiketJadwal = Peminjaman::create([
+            'user_id' => $peminjam->id,
+            'bengkel_id' => $bengkel->id,
+            'tanggal_pinjam' => now()->addDays(3),
+            'batas_kembali' => now()->addDays(3)->addHours(4),
+            'status' => 'disetujui',
+            'keperluan' => 'Praktik Bubut Terjadwal',
+            'diproses_oleh' => $toolman->id,
+            'diproses_pada' => now(),
+        ]);
+        $tiketJadwal->detailPeminjamans()->create([
+            'barang_id' => $barang->id,
+            'jumlah' => 2,
+        ]);
+
+        $barang->refresh();
+        $this->assertEquals(2, $barang->stok_reserved);
+        $this->assertEquals(2, $barang->stok_bebas);
+
+        $trxJadwal = '#PINJAM-' . str_pad($tiketJadwal->id, 4, '0', STR_PAD_LEFT);
+
+        // 1. Toolman Peminjaman Index (Tab Pending) memuat tiket disetujui jadwal
+        $resToolmanIndex = $this->actingAs($toolman)->get(route('toolman.peminjaman.index'));
+        $resToolmanIndex->assertStatus(200);
+        $resToolmanIndex->assertSee($trxJadwal);
+        $resToolmanIndex->assertSee('Jadwal Disetujui');
+        $resToolmanIndex->assertSee('Serahkan Barang');
+
+        // 2. Toolman Dashboard memuat tiket disetujui jadwal pada antrean
+        $resToolmanDash = $this->actingAs($toolman)->get(route('toolman.dashboard'));
+        $resToolmanDash->assertStatus(200);
+        $resToolmanDash->assertSee($trxJadwal);
+
+        // 3. Peminjam Dashboard memuat tiket disetujui jadwal pada jadwal ambil
+        $resPeminjamDash = $this->actingAs($peminjam)->get(route('peminjam.dashboard'));
+        $resPeminjamDash->assertStatus(200);
+        $resPeminjamDash->assertSee('Jadwal Disetujui');
+        $resPeminjamDash->assertSee('Jadwal Ambil:');
+
+        // 4. Peminjam Tiket Filter Disetujui memuat tiket disetujui jadwal
+        $resPeminjamTiket = $this->actingAs($peminjam)->get(route('peminjam.tiket.index', ['status' => 'disetujui']));
+        $resPeminjamTiket->assertStatus(200);
+        $resPeminjamTiket->assertSee('#TRX-' . str_pad($tiketJadwal->id, 4, '0', STR_PAD_LEFT));
+
+        // 5. Verifikasi app:reset-demo membersihkan transaksi dan menormalkan stok_reserved
+        $this->artisan('app:reset-demo --force')->assertSuccessful();
+        $barang->refresh();
+        $this->assertEquals(0, $barang->stok_reserved);
+        $this->assertEquals($barang->stok_tersedia, $barang->stok_bebas);
+    }
 }
 

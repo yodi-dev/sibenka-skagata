@@ -35,9 +35,9 @@ class DashboardController extends Controller
         // Sedang Dipinjam: Total unit barang fisik yang sedang dipinjam
         $sedangDipinjam = (int) Barang::where('bengkel_id', $bengkelId)->sum('stok_dipinjam');
 
-        // Request Baru: Antrean permohonan pinjam yang belum selesai diserahkan (pending / menunggu_acc / disetujui)
+        // Request Baru: Antrean permohonan pinjam yang belum selesai diserahkan (pending / menunggu_acc / disetujui / disetujui_jadwal)
         $requestBaru = Peminjaman::where('bengkel_id', $bengkelId)
-            ->whereIn('status', ['pending', 'menunggu_acc', 'disetujui'])
+            ->whereIn('status', ['pending', 'menunggu_acc', 'disetujui', 'disetujui_jadwal'])
             ->count();
 
         // Barang Rusak: Total unit barang fisik yang tercatat rusak
@@ -106,7 +106,7 @@ class DashboardController extends Controller
             }
         ])
             ->where('bengkel_id', $bengkelId)
-            ->whereIn('status', ['pending', 'menunggu_acc', 'disetujui'])
+            ->whereIn('status', ['pending', 'menunggu_acc', 'disetujui', 'disetujui_jadwal'])
             ->latest('tanggal_pinjam')
             ->take(5)
             ->get();
