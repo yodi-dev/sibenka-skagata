@@ -216,7 +216,7 @@
                                             data-title="Tolak Permohonan Peminjaman"
                                             data-message="Berikan alasan penolakan tiket <b>#PINJAM-{{ str_pad($pinjam->id, 4, '0', STR_PAD_LEFT) }}</b> milik <b>{{ addslashes($pinjam->user->name ?? 'Peminjam') }}</b>:"
                                             data-type="danger" data-confirm-text="Tolak Pengajuan" data-with-input="true"
-                                            data-input-name="alasan" data-input-label="Alasan Penolakan (Wajib):"
+                                            data-input-name="alasan_penolakan" data-input-label="Alasan Penolakan (Wajib):"
                                             data-input-placeholder="Contoh: Alat sedang dipelihara / stok fisik tidak mencukupi..."
                                             data-input-required="true">
                                             @csrf
