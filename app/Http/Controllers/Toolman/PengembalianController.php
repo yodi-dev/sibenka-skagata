@@ -21,7 +21,15 @@ class PengembalianController extends Controller
             abort(403, 'Akun Toolman Anda belum ditugaskan ke unit bengkel manapun. Silakan hubungi Waka Sarpras.');
         }
         $bengkel = $user->bengkel ?? Bengkel::findOrFail($bengkelId);
-        $tab = $request->input('tab', 'aktif'); // 'aktif' | 'riwayat'
+        $tabInput = $request->input('tab');
+        if ($tabInput === 'aktif') {
+            // Backward compatibility for previous 'aktif' tab param
+            $tab = 'sedang_dipinjam';
+        } elseif (in_array($tabInput, ['menunggu_pengecekan', 'sedang_dipinjam', 'riwayat'])) {
+            $tab = $tabInput;
+        } else {
+            $tab = 'menunggu_pengecekan'; // Default tab
+        }
 
         $query = Peminjaman::with(['user', 'bengkel', 'detailPeminjamans.barang.lokasiPenyimpanan', 'diprosesOleh'])
             ->where('bengkel_id', $bengkelId)
@@ -31,8 +39,10 @@ class PengembalianController extends Controller
 
         if ($tab === 'riwayat') {
             $query->where('status', 'selesai')->latest('updated_at');
+        } elseif ($tab === 'sedang_dipinjam') {
+            $query->whereIn('status', ['active', 'terlambat'])->orderBy('batas_kembali');
         } else {
-            $query->whereIn('status', ['active', 'terlambat', 'menunggu_pengecekan'])->orderBy('batas_kembali');
+            $query->where('status', 'menunggu_pengecekan')->orderBy('updated_at', 'desc');
         }
 
         if ($search = $request->input('search')) {
@@ -44,8 +54,14 @@ class PengembalianController extends Controller
 
         $peminjamans = $query->paginate(10)->withQueryString();
 
-        $aktifCount = Peminjaman::where('bengkel_id', $bengkelId)
-            ->whereIn('status', ['active', 'terlambat', 'menunggu_pengecekan'])
+        $menungguCekCount = Peminjaman::where('bengkel_id', $bengkelId)
+            ->where('status', 'menunggu_pengecekan')
+            ->whereHas('detailPeminjamans.barang', function ($q) {
+                $q->where('jenis_barang', 'inventaris');
+            })->count();
+
+        $sedangDipinjamCount = Peminjaman::where('bengkel_id', $bengkelId)
+            ->whereIn('status', ['active', 'terlambat'])
             ->whereHas('detailPeminjamans.barang', function ($q) {
                 $q->where('jenis_barang', 'inventaris');
             })->count();
@@ -56,7 +72,17 @@ class PengembalianController extends Controller
                 $q->where('jenis_barang', 'inventaris');
             })->count();
 
-        return view('toolman.pengembalian.index', compact('peminjamans', 'bengkel', 'tab', 'aktifCount', 'riwayatCount'));
+        $aktifCount = $menungguCekCount + $sedangDipinjamCount;
+
+        return view('toolman.pengembalian.index', compact(
+            'peminjamans',
+            'bengkel',
+            'tab',
+            'menungguCekCount',
+            'sedangDipinjamCount',
+            'riwayatCount',
+            'aktifCount'
+        ));
     }
 
     public function check($id)

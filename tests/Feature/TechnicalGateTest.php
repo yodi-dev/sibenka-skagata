@@ -708,5 +708,128 @@ class TechnicalGateTest extends TestCase
         $this->assertEquals(2, $barang->stok_bebas);    // Kuota bebas kembali utuh 2!
         $this->assertEquals(2, $barang->stok_tersedia); // Stok fisik tetap 2
     }
+
+    /**
+     * 11. Halaman cek fisik & pengembalian terbagi dalam 3 tab:
+     *     - Menunggu Cek Fisik (default): antrean pengembalian dari peminjam
+     *     - Sedang Dipinjam: monitoring alat beredar dengan proteksi tombol cek fisik langsung
+     *     - Riwayat: arsip selesai
+     */
+    public function test_toolman_pengembalian_tabs_and_physical_check_protection(): void
+    {
+        $bengkel = $this->createBengkel('B-TAB', 'Bengkel Uji Tab');
+        $toolman = $this->createUser([
+            'role' => 'toolman',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+        $peminjam = $this->createUser([
+            'role' => 'peminjam',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+
+        $barang = Barang::create([
+            'bengkel_id' => $bengkel->id,
+            'kode_barang' => 'TAB-001',
+            'nama' => 'Mesin Bor Duduk',
+            'jenis_barang' => 'inventaris',
+            'satuan' => 'Unit',
+            'stok_total' => 5,
+            'stok_tersedia' => 2,
+            'stok_dipinjam' => 3,
+            'stok_rusak' => 0,
+            'minimum_stok' => 1,
+            'kondisi_baik' => 5,
+            'kondisi_rusak' => 0,
+            'kondisi_hilang' => 0,
+        ]);
+
+        // 1. Tiket Sedang Dipinjam (active)
+        $tiketActive = Peminjaman::create([
+            'user_id' => $peminjam->id,
+            'bengkel_id' => $bengkel->id,
+            'tanggal_pinjam' => now()->subHours(2),
+            'batas_kembali' => now()->addHours(2),
+            'status' => 'active',
+            'keperluan' => 'Praktikum Bor',
+            'diproses_oleh' => $toolman->id,
+            'diproses_pada' => now()->subHours(2),
+        ]);
+        $tiketActive->detailPeminjamans()->create([
+            'barang_id' => $barang->id,
+            'jumlah' => 1,
+        ]);
+
+        // 2. Tiket Menunggu Pengecekan
+        $tiketMenunggu = Peminjaman::create([
+            'user_id' => $peminjam->id,
+            'bengkel_id' => $bengkel->id,
+            'tanggal_pinjam' => now()->subHours(4),
+            'batas_kembali' => now()->subHour(),
+            'status' => 'menunggu_pengecekan',
+            'keperluan' => 'Praktikum Selesai Cek',
+            'diproses_oleh' => $toolman->id,
+            'diproses_pada' => now()->subHours(4),
+        ]);
+        $tiketMenunggu->detailPeminjamans()->create([
+            'barang_id' => $barang->id,
+            'jumlah' => 1,
+        ]);
+
+        // 3. Tiket Selesai
+        $tiketSelesai = Peminjaman::create([
+            'user_id' => $peminjam->id,
+            'bengkel_id' => $bengkel->id,
+            'tanggal_pinjam' => now()->subDays(2),
+            'batas_kembali' => now()->subDay(),
+            'status' => 'selesai',
+            'keperluan' => 'Praktikum Kemarin',
+            'diproses_oleh' => $toolman->id,
+            'diproses_pada' => now()->subDays(2),
+        ]);
+        $tiketSelesai->detailPeminjamans()->create([
+            'barang_id' => $barang->id,
+            'jumlah' => 1,
+            'jumlah_baik' => 1,
+        ]);
+
+        $trxActive = '#TRX-' . str_pad($tiketActive->id, 4, '0', STR_PAD_LEFT);
+        $trxMenunggu = '#TRX-' . str_pad($tiketMenunggu->id, 4, '0', STR_PAD_LEFT);
+        $trxSelesai = '#TRX-' . str_pad($tiketSelesai->id, 4, '0', STR_PAD_LEFT);
+
+        // Buka halaman default (tanpa tab param -> default: menunggu_pengecekan)
+        $resDefault = $this->actingAs($toolman)->get(route('toolman.pengembalian.index'));
+        $resDefault->assertStatus(200);
+        $resDefault->assertSee('Menunggu Cek Fisik');
+        $resDefault->assertSee($trxMenunggu);
+        $resDefault->assertSee('Cek Fisik &amp; Konfirmasi Kembali', false);
+        $resDefault->assertDontSee($trxActive); // Tiket active tidak muncul di tab default antrean!
+
+        // Buka tab sedang_dipinjam
+        $resSedang = $this->actingAs($toolman)->get(route('toolman.pengembalian.index', ['tab' => 'sedang_dipinjam']));
+        $resSedang->assertStatus(200);
+        $resSedang->assertSee($trxActive);
+        $resSedang->assertSee('Sedang Digunakan');
+        $resSedang->assertSee('Terima &amp; Cek Fisik Langsung', false);
+        $resSedang->assertDontSee($trxMenunggu);
+
+        // Buka tab riwayat
+        $resRiwayat = $this->actingAs($toolman)->get(route('toolman.pengembalian.index', ['tab' => 'riwayat']));
+        $resRiwayat->assertStatus(200);
+        $resRiwayat->assertSee($trxSelesai);
+        $resRiwayat->assertSee('Pengecekan Selesai');
+        $resRiwayat->assertDontSee($trxMenunggu);
+
+        // Buka form check tiket menunggu pengecekan
+        $resCheckView = $this->actingAs($toolman)->get(route('toolman.pengembalian.check', $tiketMenunggu->id));
+        $resCheckView->assertStatus(200);
+        $resCheckView->assertSee('Menunggu Cek Fisik');
+
+        // Buka form check tiket active
+        $resCheckActiveView = $this->actingAs($toolman)->get(route('toolman.pengembalian.check', $tiketActive->id));
+        $resCheckActiveView->assertStatus(200);
+        $resCheckActiveView->assertSee('Sedang Dipinjam');
+    }
 }
 

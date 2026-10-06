@@ -47,17 +47,27 @@
             </form>
         </div>
 
-        <!-- Navigation Tabs: Perlu Pengecekan vs Riwayat Pengembalian -->
+        <!-- Navigation Tabs: Menunggu Cek Fisik vs Sedang Dipinjam vs Riwayat Pengembalian -->
         <div class="border-b border-gray-200">
-            <nav class="-mb-px flex space-x-6" aria-label="Tabs Pengembalian">
-                <a href="{{ route('toolman.pengembalian.index', array_merge(request()->query(), ['tab' => 'aktif'])) }}"
-                    class="{{ $tab === 'aktif' ? 'border-primary-500 text-primary-600 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-3 px-1 border-b-2 text-sm transition-colors flex items-center gap-2">
+            <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs Pengembalian">
+                <a href="{{ route('toolman.pengembalian.index', array_merge(request()->query(), ['tab' => 'menunggu_pengecekan'])) }}"
+                    class="{{ $tab === 'menunggu_pengecekan' ? 'border-primary-500 text-primary-600 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-3 px-1 border-b-2 text-sm transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                    </svg>
+                    Menunggu Cek Fisik
+                    <span class="px-2 py-0.5 text-xs rounded-full {{ $tab === 'menunggu_pengecekan' ? ($menungguCekCount > 0 ? 'bg-amber-100 text-amber-800 font-bold' : 'bg-primary-100 text-primary-800 font-bold') : 'bg-gray-100 text-gray-600' }}">
+                        {{ $menungguCekCount }}
+                    </span>
+                </a>
+                <a href="{{ route('toolman.pengembalian.index', array_merge(request()->query(), ['tab' => 'sedang_dipinjam'])) }}"
+                    class="{{ $tab === 'sedang_dipinjam' ? 'border-primary-500 text-primary-600 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-3 px-1 border-b-2 text-sm transition-colors flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    Perlu Pengecekan / Aktif
-                    <span class="px-2 py-0.5 text-xs rounded-full {{ $tab === 'aktif' ? 'bg-primary-100 text-primary-800 font-bold' : 'bg-gray-100 text-gray-600' }}">
-                        {{ $aktifCount }}
+                    Sedang Dipinjam
+                    <span class="px-2 py-0.5 text-xs rounded-full {{ $tab === 'sedang_dipinjam' ? 'bg-primary-100 text-primary-800 font-bold' : 'bg-gray-100 text-gray-600' }}">
+                        {{ $sedangDipinjamCount }}
                     </span>
                 </a>
                 <a href="{{ route('toolman.pengembalian.index', array_merge(request()->query(), ['tab' => 'riwayat'])) }}"
@@ -196,13 +206,47 @@
                     </div>
 
                     <!-- Footer Kartu: Action -->
-                    <div class="px-5 py-3 border-t border-gray-200 bg-white flex justify-end items-center gap-3">
-                        @if (in_array($pinjam->status, ['active', 'terlambat', 'menunggu_pengecekan']))
+                    <div class="px-5 py-3 border-t border-gray-200 bg-white flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                        @if ($pinjam->status === 'menunggu_pengecekan')
+                            <div class="text-xs text-amber-700 flex items-center gap-1.5 font-medium">
+                                <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Peminjam telah mengajukan pengembalian. Silakan lakukan cek fisik barang.</span>
+                            </div>
                             <a href="{{ route('toolman.pengembalian.check', $pinjam->id) }}"
-                                class="w-full sm:w-auto text-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors">
+                                class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
                                 Cek Fisik &amp; Konfirmasi Kembali
                             </a>
+                        @elseif (in_array($pinjam->status, ['active', 'terlambat']))
+                            <div class="text-xs text-gray-500 flex items-center gap-1.5">
+                                <svg class="w-4 h-4 shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Sedang Digunakan &bull; <span class="italic text-gray-400">Menunggu pengajuan pengembalian dari peminjam</span></span>
+                            </div>
+                            <!-- Tombol Darurat Cek Fisik Langsung dengan Modal Konfirmasi -->
+                            <form method="GET" action="{{ route('toolman.pengembalian.check', $pinjam->id) }}"
+                                data-confirm="true"
+                                data-title="Cek Fisik Pengembalian Langsung"
+                                data-message="Peminjam belum mengajukan pengembalian melalui akun mereka. Pastikan barang fisik sudah diserahkan di meja Toolman."
+                                data-submessage="Apakah Anda yakin ingin memproses cek fisik untuk transaksi #TRX-{{ str_pad($pinjam->id, 4, '0', STR_PAD_LEFT) }} sekarang?"
+                                data-type="warning"
+                                data-confirm-text="Ya, Buka Form Cek Fisik"
+                                class="w-full sm:w-auto">
+                                <button type="submit"
+                                    class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-medium rounded-lg transition-colors">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    Terima &amp; Cek Fisik Langsung
+                                </button>
+                            </form>
                         @else
+                            <div></div>
                             <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                                 <svg class="w-4 h-4 mr-1 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -222,10 +266,22 @@
                         </svg>
                     </div>
                     <h4 class="text-base font-bold text-gray-900">
-                        {{ $tab === 'riwayat' ? 'Belum Ada Riwayat Pengembalian' : 'Tidak Ada Peminjaman Aktif' }}
+                        @if ($tab === 'riwayat')
+                            Belum Ada Riwayat Pengembalian
+                        @elseif ($tab === 'sedang_dipinjam')
+                            Tidak Ada Barang Sedang Dipinjam
+                        @else
+                            Tidak Ada Antrean Cek Fisik
+                        @endif
                     </h4>
                     <p class="text-gray-500 text-sm mt-1">
-                        {{ $tab === 'riwayat' ? 'Belum ada alat inventaris yang diselesaikan pengecekan fisiknya.' : 'Semua alat inventaris saat ini tersedia di ruang bengkel.' }}
+                        @if ($tab === 'riwayat')
+                            Belum ada alat inventaris yang diselesaikan pengecekan fisiknya.
+                        @elseif ($tab === 'sedang_dipinjam')
+                            Semua alat inventaris saat ini tersedia di ruang bengkel.
+                        @else
+                            Saat ini belum ada pengajuan pengembalian barang yang menunggu pemeriksaan fisik.
+                        @endif
                     </p>
                 </div>
             @endforelse
