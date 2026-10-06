@@ -28,9 +28,9 @@ class PeminjamanController extends Controller
             ->where('bengkel_id', $bengkelId);
 
         if ($tab === 'pending') {
-            $query->whereIn('status', ['pending', 'menunggu_acc'])->latest('tanggal_pinjam');
+            $query->whereIn('status', ['pending', 'menunggu_acc', 'disetujui'])->latest('tanggal_pinjam');
         } else {
-            $query->whereNotIn('status', ['pending', 'menunggu_acc'])->latest('tanggal_pinjam');
+            $query->whereNotIn('status', ['pending', 'menunggu_acc', 'disetujui'])->latest('tanggal_pinjam');
         }
 
         if ($search = $request->input('search')) {
@@ -43,11 +43,11 @@ class PeminjamanController extends Controller
         $peminjamans = $query->paginate(10)->withQueryString();
 
         $pendingCount = Peminjaman::where('bengkel_id', $bengkelId)
-            ->whereIn('status', ['pending', 'menunggu_acc'])
+            ->whereIn('status', ['pending', 'menunggu_acc', 'disetujui'])
             ->count();
 
         $riwayatCount = Peminjaman::where('bengkel_id', $bengkelId)
-            ->whereNotIn('status', ['pending', 'menunggu_acc'])
+            ->whereNotIn('status', ['pending', 'menunggu_acc', 'disetujui'])
             ->count();
 
         return view('toolman.peminjaman.index', compact('peminjamans', 'bengkel', 'tab', 'pendingCount', 'riwayatCount'));
@@ -69,6 +69,55 @@ class PeminjamanController extends Controller
         return view('toolman.peminjaman.show', compact('peminjaman', 'bengkel'));
     }
 
+    public function setujuiJadwal($id)
+    {
+        $user = auth()->user();
+        $bengkelId = $user->bengkel_id;
+        if (!$bengkelId) {
+            abort(403, 'Akun Toolman Anda belum ditugaskan ke unit bengkel manapun. Silakan hubungi Waka Sarpras.');
+        }
+
+        try {
+            $trxCode = DB::transaction(function () use ($id, $bengkelId, $user) {
+                $peminjaman = Peminjaman::with(['user', 'detailPeminjamans.barang'])
+                    ->where('bengkel_id', $bengkelId)
+                    ->where('id', $id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if (!in_array($peminjaman->status, ['pending', 'menunggu_acc'])) {
+                    throw new \DomainException("Tiket peminjaman #{$peminjaman->id} sudah tidak dalam status menunggu persetujuan (status saat ini: {$peminjaman->status}).");
+                }
+
+                // Cek ketersediaan kuota bebas
+                foreach ($peminjaman->detailPeminjamans as $detail) {
+                    $barang = $detail->barang;
+                    if ($barang && $barang->stok_bebas < $detail->jumlah) {
+                        throw new \DomainException("Sisa kuota bebas untuk '{$barang->nama}' tidak mencukupi untuk disetujui (Sisa bebas: {$barang->stok_bebas}, Diminta: {$detail->jumlah}).");
+                    }
+                }
+
+                $peminjaman->update([
+                    'status'        => 'disetujui',
+                    'diproses_oleh' => $user->id,
+                    'diproses_pada' => now(),
+                ]);
+
+                return '#TRX-' . str_pad($peminjaman->id, 4, '0', STR_PAD_LEFT);
+            });
+
+            return redirect()->route('toolman.peminjaman.index', ['tab' => 'pending'])
+                ->with('success', "Jadwal peminjaman {$trxCode} berhasil disetujui. Kuota alat telah diamankan.");
+        } catch (\DomainException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error("Gagal menyetujui jadwal peminjaman #{$id}: " . $e->getMessage());
+            return redirect()->back()->with('error', "Gagal memproses persetujuan jadwal: Terjadi kesalahan sistem.");
+        }
+    }
+
     public function approve($id)
     {
         $user = auth()->user();
@@ -86,9 +135,9 @@ class PeminjamanController extends Controller
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                // 2. Validasi status di DALAM transaksi terkunci
-                if (!in_array($peminjaman->status, ['pending', 'menunggu_acc'])) {
-                    throw new \DomainException("Tiket peminjaman #{$peminjaman->id} sudah tidak dalam status menunggu persetujuan (status saat ini: {$peminjaman->status}).");
+                // 2. Validasi status di DALAM transaksi terkunci (bisa dari pending maupun disetujui)
+                if (!in_array($peminjaman->status, ['pending', 'menunggu_acc', 'disetujui'])) {
+                    throw new \DomainException("Tiket peminjaman #{$peminjaman->id} sudah tidak dalam status yang dapat diserahkan (status saat ini: {$peminjaman->status}).");
                 }
 
                 $details = $peminjaman->detailPeminjamans;
@@ -206,8 +255,8 @@ class PeminjamanController extends Controller
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                if (!in_array($peminjaman->status, ['pending', 'menunggu_acc'])) {
-                    throw new \DomainException("Tiket peminjaman #{$peminjaman->id} sudah tidak dalam status menunggu persetujuan (status saat ini: {$peminjaman->status}).");
+                if (!in_array($peminjaman->status, ['pending', 'menunggu_acc', 'disetujui'])) {
+                    throw new \DomainException("Tiket peminjaman #{$peminjaman->id} sudah tidak dalam status yang dapat ditolak (status saat ini: {$peminjaman->status}).");
                 }
 
                 $peminjaman->update([

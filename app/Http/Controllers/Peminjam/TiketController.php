@@ -52,7 +52,8 @@ class TiketController extends Controller
 
         $counts = [
             'all' => Peminjaman::where('user_id', $user->id)->count(),
-            'pending' => Peminjaman::where('user_id', $user->id)->where('status', 'pending')->count(),
+            'pending' => Peminjaman::where('user_id', $user->id)->whereIn('status', ['pending', 'menunggu_acc'])->count(),
+            'disetujui' => Peminjaman::where('user_id', $user->id)->where('status', 'disetujui')->count(),
             'active' => Peminjaman::where('user_id', $user->id)->where('status', 'active')->count(),
             'menunggu_pengecekan' => Peminjaman::where('user_id', $user->id)->where('status', 'menunggu_pengecekan')->count(),
             'selesai' => Peminjaman::where('user_id', $user->id)->where('status', 'selesai')->count(),

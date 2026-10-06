@@ -444,4 +444,269 @@ class TechnicalGateTest extends TestCase
         $selesaiPrintKembali = $this->actingAs($toolman)->get(route('toolman.pengembalian.print-kembali', $pinjamanSelesai->id));
         $selesaiPrintKembali->assertStatus(200);
     }
+
+    /**
+     * 8. Peminjam dapat membuat pengajuan peminjaman terjadwal hingga maksimal 14 hari ke depan.
+     */
+    public function test_peminjam_can_advance_book_up_to_14_days_ahead(): void
+    {
+        $bengkel = $this->createBengkel('B-ADV', 'Bengkel Advance Booking');
+        $peminjam = $this->createUser([
+            'role' => 'peminjam',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+
+        $barang = Barang::create([
+            'bengkel_id' => $bengkel->id,
+            'kode_barang' => 'ADV-001',
+            'nama' => 'Multimeter Digital Advance',
+            'jenis_barang' => 'inventaris',
+            'satuan' => 'Unit',
+            'stok_total' => 5,
+            'stok_tersedia' => 5,
+            'stok_dipinjam' => 0,
+            'stok_rusak' => 0,
+            'minimum_stok' => 1,
+        ]);
+
+        $jadwalPinjam = now()->addDays(7)->setTime(10, 0);
+        $batasKembali = now()->addDays(7)->setTime(16, 0);
+
+        $response = $this->actingAs($peminjam)->post(route('peminjam.pengajuan.store'), [
+            'bengkel_id' => $bengkel->id,
+            'items' => json_encode([
+                ['id' => $barang->id, 'qty' => 2]
+            ]),
+            'tanggal_pinjam' => $jadwalPinjam->format('Y-m-d H:i:s'),
+            'batas_kembali' => $batasKembali->format('Y-m-d H:i:s'),
+            'keperluan' => 'Praktikum Pengukuran Listrik Minggu Depan',
+        ]);
+
+        $response->assertStatus(302);
+        $response->assertRedirect(route('peminjam.tiket.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('peminjamans', [
+            'user_id' => $peminjam->id,
+            'bengkel_id' => $bengkel->id,
+            'status' => 'pending',
+            'keperluan' => 'Praktikum Pengukuran Listrik Minggu Depan',
+        ]);
+
+        $peminjaman = Peminjaman::where('user_id', $peminjam->id)->first();
+        $this->assertEquals($jadwalPinjam->format('Y-m-d H:i:00'), \Carbon\Carbon::parse($peminjaman->tanggal_pinjam)->format('Y-m-d H:i:00'));
+    }
+
+    /**
+     * 9. Validasi menolak pengajuan jadwal jika melebihi 14 hari ke depan atau di masa lampau.
+     */
+    public function test_peminjam_cannot_advance_book_more_than_14_days_or_in_the_past(): void
+    {
+        $bengkel = $this->createBengkel('B-LIM', 'Bengkel Batas Booking');
+        $peminjam = $this->createUser([
+            'role' => 'peminjam',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+
+        $barang = Barang::create([
+            'bengkel_id' => $bengkel->id,
+            'kode_barang' => 'LIM-001',
+            'nama' => 'Mesin Bor Duduk',
+            'jenis_barang' => 'inventaris',
+            'satuan' => 'Unit',
+            'stok_total' => 3,
+            'stok_tersedia' => 3,
+            'stok_dipinjam' => 0,
+            'stok_rusak' => 0,
+            'minimum_stok' => 1,
+        ]);
+
+        // A. Pengajuan lebih dari 14 hari ke depan (hari ke-16) harus ditolak
+        $jadwalTerlaluJauh = now()->addDays(16)->setTime(10, 0);
+        $responseJauh = $this->actingAs($peminjam)->post(route('peminjam.pengajuan.store'), [
+            'bengkel_id' => $bengkel->id,
+            'items' => json_encode([['id' => $barang->id, 'qty' => 1]]),
+            'tanggal_pinjam' => $jadwalTerlaluJauh->format('Y-m-d H:i:s'),
+            'batas_kembali' => $jadwalTerlaluJauh->copy()->addHours(4)->format('Y-m-d H:i:s'),
+            'keperluan' => 'Peminjaman terlalu jauh hari',
+        ]);
+        $responseJauh->assertSessionHasErrors('tanggal_pinjam');
+
+        // B. Pengajuan di masa lampau (kemarin) harus ditolak
+        $jadwalLampau = now()->subDays(1)->setTime(10, 0);
+        $responseLampau = $this->actingAs($peminjam)->post(route('peminjam.pengajuan.store'), [
+            'bengkel_id' => $bengkel->id,
+            'items' => json_encode([['id' => $barang->id, 'qty' => 1]]),
+            'tanggal_pinjam' => $jadwalLampau->format('Y-m-d H:i:s'),
+            'batas_kembali' => now()->format('Y-m-d H:i:s'),
+            'keperluan' => 'Peminjaman di masa lampau',
+        ]);
+        $responseLampau->assertSessionHasErrors('tanggal_pinjam');
+    }
+
+    /**
+     * 10. Dua tahap persetujuan:
+     *     - Tahap 1: "Setujui Jadwal" (status 'disetujui', stok_reserved terpotong dari stok_bebas, stok_tersedia fisik utuh).
+     *     - Tahap 2: "Serahkan Barang" (status 'active', stok_tersedia fisik baru berkurang, mutasi dicatat).
+     */
+    public function test_two_stage_approval_schedule_reservation_and_handover(): void
+    {
+        $bengkel = $this->createBengkel('B-2STG', 'Bengkel Dua Tahap');
+        $toolman = $this->createUser([
+            'role' => 'toolman',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+        $peminjam1 = $this->createUser([
+            'role' => 'peminjam',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+        $peminjam2 = $this->createUser([
+            'role' => 'peminjam',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+
+        $barang = Barang::create([
+            'bengkel_id' => $bengkel->id,
+            'kode_barang' => 'STG-001',
+            'nama' => 'Tang Crimping RJ45 Pro',
+            'jenis_barang' => 'inventaris',
+            'satuan' => 'Pcs',
+            'stok_total' => 5,
+            'stok_tersedia' => 5,
+            'stok_dipinjam' => 0,
+            'stok_rusak' => 0,
+            'minimum_stok' => 1,
+        ]);
+
+        // Peminjam 1 mengajukan pinjam 3 unit
+        $this->actingAs($peminjam1)->post(route('peminjam.pengajuan.store'), [
+            'bengkel_id' => $bengkel->id,
+            'items' => json_encode([['id' => $barang->id, 'qty' => 3]]),
+            'tanggal_pinjam' => now()->addDays(3)->format('Y-m-d H:i:s'),
+            'batas_kembali' => now()->addDays(3)->addHours(4)->format('Y-m-d H:i:s'),
+            'keperluan' => 'Praktikum Jaringan Peminjam 1',
+        ]);
+
+        $tiket1 = Peminjaman::where('user_id', $peminjam1->id)->first();
+        $this->assertEquals('pending', $tiket1->status);
+
+        // --- TAHAP 1: Toolman menyetujui jadwal ---
+        $responseSetujui = $this->actingAs($toolman)->post(route('toolman.peminjaman.setujui-jadwal', $tiket1->id));
+        $responseSetujui->assertRedirect(route('toolman.peminjaman.index', ['tab' => 'pending']));
+        $responseSetujui->assertSessionHas('success');
+
+        $tiket1->refresh();
+        $barang->refresh();
+        $this->assertEquals('disetujui', $tiket1->status);
+        $this->assertEquals(5, $barang->stok_tersedia); // Stok fisik BELUM berkurang!
+        $this->assertEquals(3, $barang->stok_reserved); // Kuota ter-reserve 3
+        $this->assertEquals(2, $barang->stok_bebas);    // Sisa kuota bebas tinggal 2 (5 - 3)
+
+        // Peminjam 2 mencoba mengajukan pinjam 3 unit (harus GAGAL karena sisa kuota bebas hanya 2)
+        $responsePinjam2 = $this->actingAs($peminjam2)->post(route('peminjam.pengajuan.store'), [
+            'bengkel_id' => $bengkel->id,
+            'items' => json_encode([['id' => $barang->id, 'qty' => 3]]),
+            'tanggal_pinjam' => now()->addDays(1)->format('Y-m-d H:i:s'),
+            'batas_kembali' => now()->addDays(1)->addHours(2)->format('Y-m-d H:i:s'),
+            'keperluan' => 'Mencoba serobot alat yang ter-booking',
+        ]);
+        $responsePinjam2->assertSessionHas('error');
+        $this->assertStringContainsString('tidak mencukupi untuk peminjaman baru', session('error'));
+
+        // Peminjam 2 mengajukan pinjam 2 unit (sesuai sisa kuota bebas) -> BERHASIL
+        $responsePinjam2Pas = $this->actingAs($peminjam2)->post(route('peminjam.pengajuan.store'), [
+            'bengkel_id' => $bengkel->id,
+            'items' => json_encode([['id' => $barang->id, 'qty' => 2]]),
+            'tanggal_pinjam' => now()->addDays(1)->format('Y-m-d H:i:s'),
+            'batas_kembali' => now()->addDays(1)->addHours(2)->format('Y-m-d H:i:s'),
+            'keperluan' => 'Meminjam sisa kuota bebas',
+        ]);
+        $responsePinjam2Pas->assertSessionHas('success');
+
+        // --- TAHAP 2: Pada hari-H, Toolman menyerahkan barang fisik ---
+        $responseApprove = $this->actingAs($toolman)->post(route('toolman.peminjaman.approve', $tiket1->id));
+        $responseApprove->assertRedirect(route('toolman.peminjaman.index', ['tab' => 'riwayat']));
+        $responseApprove->assertSessionHas('success');
+
+        $tiket1->refresh();
+        $barang->refresh();
+        $this->assertEquals('active', $tiket1->status);
+        $this->assertEquals(2, $barang->stok_tersedia); // Stok fisik BARU berkurang (5 - 3 = 2)
+        $this->assertEquals(3, $barang->stok_dipinjam);
+        $this->assertEquals(0, $barang->stok_reserved); // Tiket bukan lagi 'disetujui' sehingga reserved kembali 0
+        $this->assertEquals(2, $barang->stok_bebas);    // Stok bebas konsisten = 2 - 0 = 2
+
+        // Pastikan StockMovement tercatat saat penyerahan fisik
+        $this->assertDatabaseHas('stock_movements', [
+            'barang_id' => $barang->id,
+            'jenis' => 'peminjaman',
+            'jumlah' => 3,
+        ]);
+    }
+
+    /**
+     * 11. Toolman dapat menolak/membatalkan tiket yang berstatus 'disetujui', dan kuota reserved otomatis dilepas.
+     */
+    public function test_toolman_can_reject_scheduled_loan_and_release_reserved_quota(): void
+    {
+        $bengkel = $this->createBengkel('B-REJ', 'Bengkel Batal Jadwal');
+        $toolman = $this->createUser([
+            'role' => 'toolman',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+        $peminjam = $this->createUser([
+            'role' => 'peminjam',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+
+        $barang = Barang::create([
+            'bengkel_id' => $bengkel->id,
+            'kode_barang' => 'REJ-001',
+            'nama' => 'Proyektor Mini Praktikum',
+            'jenis_barang' => 'inventaris',
+            'satuan' => 'Unit',
+            'stok_total' => 2,
+            'stok_tersedia' => 2,
+            'stok_dipinjam' => 0,
+            'stok_rusak' => 0,
+            'minimum_stok' => 1,
+        ]);
+
+        // Ajukan dan setujui jadwal
+        $this->actingAs($peminjam)->post(route('peminjam.pengajuan.store'), [
+            'bengkel_id' => $bengkel->id,
+            'items' => json_encode([['id' => $barang->id, 'qty' => 2]]),
+            'tanggal_pinjam' => now()->addDays(5)->format('Y-m-d H:i:s'),
+            'batas_kembali' => now()->addDays(5)->addHours(3)->format('Y-m-d H:i:s'),
+            'keperluan' => 'Presentasi Proyek Akhir',
+        ]);
+
+        $tiket = Peminjaman::where('user_id', $peminjam->id)->first();
+        $this->actingAs($toolman)->post(route('toolman.peminjaman.setujui-jadwal', $tiket->id));
+
+        $barang->refresh();
+        $this->assertEquals(2, $barang->stok_reserved);
+        $this->assertEquals(0, $barang->stok_bebas);
+
+        // Toolman menolak/membatalkan pengajuan terjadwal
+        $responseReject = $this->actingAs($toolman)->post(route('toolman.peminjaman.reject', $tiket->id), [
+            'alasan_penolakan' => 'Peminjam mengonfirmasi pembatalan peminjaman.',
+        ]);
+        $responseReject->assertSessionHas('success');
+
+        $tiket->refresh();
+        $barang->refresh();
+        $this->assertEquals('ditolak', $tiket->status);
+        $this->assertEquals(0, $barang->stok_reserved); // Kuota reserved langsung dilepas!
+        $this->assertEquals(2, $barang->stok_bebas);    // Kuota bebas kembali utuh 2!
+        $this->assertEquals(2, $barang->stok_tersedia); // Stok fisik tetap 2
+    }
 }
+
