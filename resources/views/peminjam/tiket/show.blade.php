@@ -163,7 +163,12 @@
 
                 @if (in_array($peminjaman->status, ['active', 'terlambat']))
                     <form method="POST" action="{{ route('peminjam.tiket.kembalikan', $peminjaman->id) }}"
-                        onsubmit="return confirm('Apakah Anda yakin siap menyerahkan alat fisik ke meja Toolman sekarang?')">
+                        data-confirm="true"
+                        data-title="Konfirmasi Pengembalian Alat"
+                        data-message="Apakah Anda yakin siap menyerahkan seluruh alat fisik tiket <strong>#TRX-{{ str_pad($peminjaman->id, 4, '0', STR_PAD_LEFT) }}</strong> ke meja Toolman sekarang?"
+                        data-submessage="Pastikan semua barang fisik dibawa lengkap beserta kelengkapannya ke ruang bengkel."
+                        data-type="primary"
+                        data-confirm-text="Ya, Ajukan Pengembalian">
                         @csrf
                         <button type="submit"
                             class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors">

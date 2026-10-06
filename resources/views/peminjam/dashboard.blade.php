@@ -393,7 +393,12 @@
                                     </a>
                                     @if (in_array($item->status, ['active', 'terlambat']))
                                         <form method="POST" action="{{ route('peminjam.tiket.kembalikan', $item->id) }}"
-                                            onsubmit="return confirm('Ajukan pengembalian untuk tiket #TRX-{{ str_pad($item->id, 4, '0', STR_PAD_LEFT) }}? Siapkan barang fisik untuk diserahkan ke meja Toolman.')">
+                                            data-confirm="true"
+                                            data-title="Konfirmasi Pengembalian Alat"
+                                            data-message="Ajukan pengembalian untuk tiket <strong>#TRX-{{ str_pad($item->id, 4, '0', STR_PAD_LEFT) }}</strong>?"
+                                            data-submessage="Siapkan barang fisik untuk diserahkan ke meja Toolman agar dapat dicek kondisinya."
+                                            data-type="primary"
+                                            data-confirm-text="Ya, Kembalikan">
                                             @csrf
                                             <button type="submit"
                                                 class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-2xs transition-colors">
@@ -879,7 +884,12 @@
                                 </a>
                                 @if (in_array($item->status, ['active', 'terlambat']))
                                     <form method="POST" action="{{ route('peminjam.tiket.kembalikan', $item->id) }}"
-                                        onsubmit="return confirm('Ajukan pengembalian untuk tiket #TRX-{{ str_pad($item->id, 4, '0', STR_PAD_LEFT) }}? Siapkan barang fisik untuk diserahkan ke Toolman.')">
+                                        data-confirm="true"
+                                        data-title="Konfirmasi Pengembalian Alat"
+                                        data-message="Ajukan pengembalian untuk tiket <strong>#TRX-{{ str_pad($item->id, 4, '0', STR_PAD_LEFT) }}</strong>?"
+                                        data-submessage="Siapkan barang fisik untuk diserahkan ke meja Toolman agar dapat dicek kondisinya."
+                                        data-type="primary"
+                                        data-confirm-text="Ya, Kembalikan">
                                         @csrf
                                         <button type="submit"
                                             class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-2xs transition-colors flex items-center gap-1.5">

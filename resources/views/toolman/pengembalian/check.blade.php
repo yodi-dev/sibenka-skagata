@@ -97,7 +97,12 @@
 
         <!-- Form Pengecekan -->
         <form method="POST" action="{{ route('toolman.pengembalian.process-check', $peminjaman->id) }}"
-            onsubmit="return confirm('Pastikan pemeriksaan fisik telah sesuai. Setelah disimpan, transaksi peminjaman akan dinyatakan selesai dan stok bengkel diperbarui. Lanjutkan?');"
+            data-confirm="true"
+            data-title="Konfirmasi Selesai Pemeriksaan Fisik"
+            data-message="Pastikan pemeriksaan fisik telah sesuai dengan kondisi fisik barang yang diterima."
+            data-submessage="Setelah disimpan, transaksi peminjaman akan dinyatakan selesai dan stok bengkel diperbarui secara otomatis."
+            data-type="success"
+            data-confirm-text="Ya, Simpan & Selesaikan"
             class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             @csrf
 

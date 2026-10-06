@@ -240,6 +240,8 @@
         </a>
     </nav>
 
+    @include('components.confirm-modal')
+
     @stack('scripts')
 </body>
 

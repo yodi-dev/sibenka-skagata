@@ -547,7 +547,13 @@
                 </p>
             </div>
             <form method="POST" action="{{ route('logout') }}"
-                onsubmit="return confirm('Apakah Anda yakin ingin keluar dari akun ini?');" class="shrink-0">
+                data-confirm="true"
+                data-title="Konfirmasi Keluar Akun"
+                data-message="Apakah Anda yakin ingin keluar dari akun ini?"
+                data-submessage="Pastikan pekerjaan atau permohonan Anda telah disimpan sebelum mengakhiri sesi."
+                data-type="danger"
+                data-confirm-text="Ya, Keluar Akun"
+                class="shrink-0">
                 @csrf
                 <button type="submit"
                     class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-2xs">

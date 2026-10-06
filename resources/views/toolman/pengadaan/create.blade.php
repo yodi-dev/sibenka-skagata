@@ -83,7 +83,11 @@
     
         generateFromLimit() {
             if (this.limitItemsData.length === 0) {
-                alert('Tidak ada barang bengkel yang berada di bawah batas minimum stok atau berstatus rusak saat ini.');
+                window.openAlertModal({
+                    title: 'Rekomendasi Pengadaan',
+                    message: 'Tidak ada barang bengkel yang berada di bawah batas minimum stok atau berstatus rusak saat ini.',
+                    type: 'info'
+                });
                 return;
             }
     
@@ -95,7 +99,11 @@
                 const existingIds = this.items.map(i => i.barang_id).filter(Boolean);
                 const newItems = this.limitItemsData.filter(i => !existingIds.includes(i.barang_id));
                 if (newItems.length === 0) {
-                    alert('Semua barang limit/rusak sudah ada di dalam tabel usulan.');
+                    window.openAlertModal({
+                        title: 'Rekomendasi Pengadaan',
+                        message: 'Semua barang limit/rusak sudah ada di dalam tabel usulan pengadaan.',
+                        type: 'info'
+                    });
                     return;
                 }
                 this.items.push(...JSON.parse(JSON.stringify(newItems)));

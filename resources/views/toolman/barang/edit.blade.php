@@ -175,31 +175,40 @@
                     }
                 },
                 async deleteSumberDana(item) {
-                    if (!confirm(`Hapus sumber dana "${item.nama}"?`)) return;
-                    this.sdLoading = true;
-                    this.sdError = '';
-                    try {
-                        const response = await fetch('{{ url('/toolman/sumber-dana') }}/' + item.id, {
-                            method: 'DELETE',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json'
+                    window.openConfirmModal({
+                        title: 'Konfirmasi Hapus Sumber Dana',
+                        message: `Apakah Anda yakin ingin menghapus sumber dana <strong>"${item.nama}"</strong>?`,
+                        subMessage: 'Tindakan ini tidak dapat dibatalkan jika data sumber dana belum terikat ke barang.',
+                        type: 'danger',
+                        confirmText: 'Ya, Hapus',
+                        cancelText: 'Batal',
+                        onConfirm: async () => {
+                            this.sdLoading = true;
+                            this.sdError = '';
+                            try {
+                                const response = await fetch('{{ url('/toolman/sumber-dana') }}/' + item.id, {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'Accept': 'application/json'
+                                    }
+                                });
+                                const data = await response.json();
+                                if (!response.ok) {
+                                    throw new Error(data.message || 'Gagal menghapus sumber dana');
+                                }
+                                await this.refreshSumberDanas();
+                                this.sdSuccessMsg = 'Sumber dana berhasil dihapus!';
+                                setTimeout(() => {
+                                    this.sdSuccessMsg = '';
+                                }, 3000);
+                            } catch (err) {
+                                this.sdError = err.message;
+                            } finally {
+                                this.sdLoading = false;
                             }
-                        });
-                        const data = await response.json();
-                        if (!response.ok) {
-                            throw new Error(data.message || 'Gagal menghapus sumber dana');
                         }
-                        await this.refreshSumberDanas();
-                        this.sdSuccessMsg = 'Sumber dana berhasil dihapus!';
-                        setTimeout(() => {
-                            this.sdSuccessMsg = '';
-                        }, 3000);
-                    } catch (err) {
-                        this.sdError = err.message;
-                    } finally {
-                        this.sdLoading = false;
-                    }
+                    });
                 }
             };
         }
