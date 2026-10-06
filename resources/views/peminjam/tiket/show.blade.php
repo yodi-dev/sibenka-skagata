@@ -23,6 +23,13 @@
                 'desc' =>
                     'Pengajuan peminjaman Anda telah terkirim dan sedang menunggu verifikasi serta persetujuan dari Toolman bengkel.',
             ],
+            'disetujui' => [
+                'label' => 'Jadwal Disetujui (Menunggu Pengambilan)',
+                'class' => 'bg-emerald-100 text-emerald-900 border-emerald-300',
+                'dot' => 'bg-emerald-600 animate-pulse',
+                'desc' =>
+                    'Jadwal peminjaman dan kuota barang telah disetujui serta diamankan oleh Toolman. Silakan datang ke bengkel pada waktu pengambilan untuk serah terima barang fisik.',
+            ],
             'active' => [
                 'label' => $isLate ? 'Terlambat Dikembalikan' : 'Sedang Dipinjam (Aktif)',
                 'class' => $isLate

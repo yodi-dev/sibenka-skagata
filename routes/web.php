@@ -127,6 +127,7 @@ Route::prefix('toolman')->name('toolman.')->middleware(['auth', 'role:toolman'])
     // Sirkulasi Peminjaman
     Route::get('/peminjaman', [ToolmanPeminjamanController::class, 'index'])->name('peminjaman.index');
     Route::get('/peminjaman/{id}', [ToolmanPeminjamanController::class, 'show'])->name('peminjaman.show');
+    Route::post('/peminjaman/{id}/setujui-jadwal', [ToolmanPeminjamanController::class, 'setujuiJadwal'])->name('peminjaman.setujui-jadwal');
     Route::post('/peminjaman/{id}/approve', [ToolmanPeminjamanController::class, 'approve'])->name('peminjaman.approve');
     Route::post('/peminjaman/{id}/reject', [ToolmanPeminjamanController::class, 'reject'])->name('peminjaman.reject');
     Route::get('/peminjaman/{id}/print-pinjam', [ToolmanPengembalianController::class, 'printPinjam'])->name('peminjaman.print-pinjam');

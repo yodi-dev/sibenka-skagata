@@ -84,10 +84,22 @@
                 </div>
             </div>
             <div class="text-left sm:text-right">
-                <span
-                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Sedang Dipinjam
-                </span>
+                @if ($peminjaman->status === 'menunggu_pengecekan')
+                    <span
+                        class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                        Menunggu Cek Fisik
+                    </span>
+                @elseif ($peminjaman->status === 'terlambat' || ($peminjaman->batas_kembali && \Carbon\Carbon::parse($peminjaman->batas_kembali)->isPast()))
+                    <span
+                        class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                        Terlambat
+                    </span>
+                @else
+                    <span
+                        class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Sedang Dipinjam
+                    </span>
+                @endif
                 <p class="text-xs text-gray-500 mt-1">
                     Batas Kembali:
                     {{ $peminjaman->batas_kembali ? \Carbon\Carbon::parse($peminjaman->batas_kembali)->translatedFormat('d M Y, H:i') : 'Hari ini' }}

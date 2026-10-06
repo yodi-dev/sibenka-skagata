@@ -64,4 +64,24 @@ class Barang extends Model
     {
         return $this->hasMany(StockMovement::class);
     }
+
+    /**
+     * Total unit barang yang sudah di-ACC jadwalnya tapi belum diambil secara fisik.
+     */
+    public function getStokReservedAttribute(): int
+    {
+        return (int) $this->detailPeminjamans()
+            ->whereHas('peminjaman', function ($q) {
+                $q->where('status', 'disetujui');
+            })
+            ->sum('jumlah');
+    }
+
+    /**
+     * Sisa kuota stok yang bebas diajukan untuk peminjaman baru.
+     */
+    public function getStokBebasAttribute(): int
+    {
+        return max(0, $this->stok_tersedia - $this->stok_reserved);
+    }
 }

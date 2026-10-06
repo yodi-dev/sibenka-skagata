@@ -83,6 +83,7 @@
                 $tabs = [
                     'all' => ['label' => 'Semua Tiket', 'count' => $counts['all']],
                     'pending' => ['label' => 'Menunggu Acc', 'count' => $counts['pending']],
+                    'disetujui' => ['label' => 'Jadwal Disetujui', 'count' => $counts['disetujui'] ?? 0],
                     'active' => ['label' => 'Sedang Dipinjam', 'count' => $counts['active']],
                     'menunggu_pengecekan' => ['label' => 'Cek Fisik', 'count' => $counts['menunggu_pengecekan']],
                     'selesai' => ['label' => 'Selesai', 'count' => $counts['selesai']],
@@ -124,6 +125,12 @@
                             'badge' => 'bg-amber-50 text-amber-800 border-amber-200',
                             'dot' => 'bg-amber-500 animate-pulse',
                             'header' => 'border-amber-100 bg-amber-50/40',
+                        ],
+                        'disetujui' => [
+                            'label' => 'Jadwal Disetujui (Siap Diambil)',
+                            'badge' => 'bg-emerald-50 text-emerald-800 border-emerald-200',
+                            'dot' => 'bg-emerald-500 animate-pulse',
+                            'header' => 'border-emerald-100 bg-emerald-50/40',
                         ],
                         'active' => [
                             'label' => $isLate ? 'Terlambat Dikembalikan' : 'Sedang Dipinjam',
@@ -319,6 +326,13 @@
                                 </svg>
                                 <span class="text-amber-800 font-medium text-xs">Menunggu persetujuan Toolman bengkel
                                     {{ $tiket->bengkel->nama }}.</span>
+                            @elseif ($tiket->status === 'disetujui')
+                                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span class="text-emerald-800 font-medium text-xs">Jadwal disetujui & kuota diamankan. Silakan datang ke meja Toolman bengkel {{ $tiket->bengkel->nama }} pada waktu pengambilan.</span>
                             @elseif ($tiket->status === 'menunggu_pengecekan')
                                 <svg class="w-4 h-4 text-purple-600 shrink-0" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">

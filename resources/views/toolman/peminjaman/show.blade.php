@@ -43,6 +43,11 @@
                             class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
                             Menunggu Persetujuan
                         </span>
+                    @elseif ($peminjaman->status === 'disetujui')
+                        <span
+                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                            Jadwal Disetujui (Menunggu Pengambilan)
+                        </span>
                     @elseif ($peminjaman->status === 'active' || $peminjaman->status === 'aktif')
                         <span
                             class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
@@ -67,26 +72,30 @@
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <a href="{{ route('toolman.pengembalian.print-pinjam', $peminjaman->id) }}" target="_blank"
-                    class="inline-flex items-center px-3.5 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-lg shadow-sm transition-colors"
-                    title="Cetak Bon Pinjam Alat/Bahan Resmi">
-                    <svg class="w-4 h-4 mr-1.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
-                        </path>
-                    </svg>
-                    Cetak Bukti Pinjam
-                </a>
-                <a href="{{ route('toolman.pengembalian.print-kembali', $peminjaman->id) }}" target="_blank"
-                    class="inline-flex items-center px-3.5 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-lg shadow-sm transition-colors"
-                    title="Cetak Bukti Pengembalian Alat/Bahan Resmi">
-                    <svg class="w-4 h-4 mr-1.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
-                        </path>
-                    </svg>
-                    Cetak Bukti Pengembalian
-                </a>
+                @if (in_array($peminjaman->status, ['active', 'aktif', 'terlambat', 'menunggu_pengecekan', 'selesai']))
+                    <a href="{{ route('toolman.pengembalian.print-pinjam', $peminjaman->id) }}" target="_blank"
+                        class="inline-flex items-center px-3.5 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-lg shadow-sm transition-colors"
+                        title="Cetak Bon Pinjam Alat/Bahan Resmi">
+                        <svg class="w-4 h-4 mr-1.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
+                            </path>
+                        </svg>
+                        Cetak Bukti Pinjam
+                    </a>
+                @endif
+                @if ($peminjaman->status === 'selesai')
+                    <a href="{{ route('toolman.pengembalian.print-kembali', $peminjaman->id) }}" target="_blank"
+                        class="inline-flex items-center px-3.5 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-lg shadow-sm transition-colors"
+                        title="Cetak Bukti Pengembalian Alat/Bahan Resmi">
+                        <svg class="w-4 h-4 mr-1.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
+                            </path>
+                        </svg>
+                        Cetak Bukti Pengembalian
+                    </a>
+                @endif
                 <a href="{{ route('toolman.peminjaman.index') }}"
                     class="inline-flex items-center px-3.5 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-lg shadow-sm transition-colors">
                     <svg class="w-4 h-4 mr-1.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -190,7 +199,7 @@
                             <th class="px-6 py-3.5 font-semibold">Kode & Nama Barang</th>
                             <th class="px-6 py-3.5 font-semibold">Tipe</th>
                             <th class="px-6 py-3.5 font-semibold text-center">Jumlah Diminta</th>
-                            <th class="px-6 py-3.5 font-semibold text-center">Stok Tersedia</th>
+                            <th class="px-6 py-3.5 font-semibold text-center">Sisa Kuota Bebas</th>
                             <th class="px-6 py-3.5 font-semibold">Kondisi Saat Ini</th>
                         </tr>
                     </thead>
@@ -212,8 +221,9 @@
                                     {{ $detail->jumlah }} {{ $detail->barang->satuan ?? 'Unit' }}
                                 </td>
                                 <td
-                                    class="px-6 py-4 text-center font-medium {{ ($detail->barang->stok_tersedia ?? 0) < $detail->jumlah ? 'text-red-600 font-bold' : 'text-green-600' }}">
-                                    {{ $detail->barang->stok_tersedia ?? 0 }} {{ $detail->barang->satuan ?? 'Unit' }}
+                                    class="px-6 py-4 text-center font-medium {{ ($detail->barang->stok_bebas ?? 0) < $detail->jumlah ? 'text-red-600 font-bold' : 'text-green-600' }}">
+                                    {{ $detail->barang->stok_bebas ?? 0 }} {{ $detail->barang->satuan ?? 'Unit' }}
+                                    <span class="text-xs text-gray-400 block font-normal">(Fisik: {{ $detail->barang->stok_tersedia ?? 0 }})</span>
                                 </td>
                                 <td class="px-6 py-4 text-xs text-gray-600">
                                     @if ($peminjaman->status === 'selesai')
@@ -246,12 +256,12 @@
             <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h4 class="text-base font-bold text-gray-900">Konfirmasi Persetujuan Peminjaman</h4>
+                        <h4 class="text-base font-bold text-gray-900">Persetujuan & Penyerahan Barang</h4>
                         <p class="text-sm text-gray-500 mt-1">
-                            Pastikan ketersediaan fisik alat & bahan di bengkel sebelum menyerahkannya kepada peminjam.
+                            Anda dapat menyetujui jadwal untuk mengamankan kuota barang, atau langsung menyerahkan barang jika peminjam sudah di lokasi bengkel.
                         </p>
                     </div>
-                    <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
                         <!-- Form Tolak Modal -->
                         <form action="{{ route('toolman.peminjaman.reject', $peminjaman->id) }}" method="POST" class="inline"
                               data-confirm="true"
@@ -266,25 +276,93 @@
                               data-input-required="true">
                             @csrf
                             <button type="submit"
-                                class="px-5 py-2.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-sm font-semibold rounded-xl shadow-sm transition-colors">
+                                class="px-4 py-2.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-sm font-semibold rounded-xl shadow-sm transition-colors">
                                 Tolak Pengajuan
                             </button>
                         </form>
 
-                        <!-- Form Approve & Serahkan Modal -->
+                        <!-- Form Setujui Jadwal -->
+                        <form action="{{ route('toolman.peminjaman.setujui-jadwal', $peminjaman->id) }}" method="POST" class="inline"
+                              data-confirm="true"
+                              data-title="Setujui Jadwal Peminjaman"
+                              data-message="Apakah Anda yakin ingin menyetujui jadwal peminjaman tiket <b>#PINJAM-{{ str_pad($peminjaman->id, 4, '0', STR_PAD_LEFT) }}</b>? Kuota barang akan diamankan untuk tanggal praktikum."
+                              data-type="info"
+                              data-confirm-text="Ya, Setujui Jadwal">
+                            @csrf
+                            <button type="submit"
+                                class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                Setujui Jadwal
+                            </button>
+                        </form>
+
+                        <!-- Form Approve & Serahkan Langsung Modal -->
                         <form action="{{ route('toolman.peminjaman.approve', $peminjaman->id) }}" method="POST" class="inline"
                               data-confirm="true"
                               data-title="Setujui Peminjaman & Serahkan Barang"
-                              data-message="Apakah Anda yakin ingin menyetujui peminjaman tiket <b>#PINJAM-{{ str_pad($peminjaman->id, 4, '0', STR_PAD_LEFT) }}</b> untuk <b>{{ addslashes($peminjaman->user->name ?? 'Peminjam') }}</b>? Pastikan barang fisik telah diserahkan di bengkel."
+                              data-message="Apakah Anda yakin ingin menyetujui peminjaman tiket <b>#PINJAM-{{ str_pad($peminjaman->id, 4, '0', STR_PAD_LEFT) }}</b> dan langsung menyerahkan barang fisik sekarang?"
                               data-type="success"
-                              data-confirm-text="Ya, Setujui & Serahkan">
+                              data-confirm-text="Ya, Serahkan Barang">
+                            @csrf
+                            <button type="submit"
+                                class="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Serahkan Langsung
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @elseif ($peminjaman->status === 'disetujui')
+            <div class="bg-white border border-emerald-200 rounded-xl p-6 shadow-sm">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <h4 class="text-base font-bold text-gray-900">Serah Terima Barang Fisik (Jadwal Telah Disetujui)</h4>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Kuota barang telah diamankan. Serahkan peralatan/bahan fisik kepada peminjam saat mereka hadir di bengkel, kemudian klik tombol <b>Serahkan Barang Fisik</b> untuk memotong stok fisik.
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
+                        <!-- Form Batalkan / Tolak -->
+                        <form action="{{ route('toolman.peminjaman.reject', $peminjaman->id) }}" method="POST" class="inline"
+                              data-confirm="true"
+                              data-title="Batalkan Persetujuan Jadwal"
+                              data-message="Berikan alasan pembatalan tiket <b>#PINJAM-{{ str_pad($peminjaman->id, 4, '0', STR_PAD_LEFT) }}</b> milik <b>{{ addslashes($peminjaman->user->name ?? 'Peminjam') }}</b>. Kuota yang dipesan akan dilepas kembali:"
+                              data-type="danger"
+                              data-confirm-text="Batalkan Tiket"
+                              data-with-input="true"
+                              data-input-name="alasan_penolakan"
+                              data-input-label="Alasan Pembatalan (Wajib):"
+                              data-input-placeholder="Contoh: Peminjam membatalkan rencana praktikum..."
+                              data-input-required="true">
+                            @csrf
+                            <button type="submit"
+                                class="px-4 py-2.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-sm font-semibold rounded-xl shadow-sm transition-colors">
+                                Batalkan Tiket
+                            </button>
+                        </form>
+
+                        <!-- Form Serahkan Barang Fisik Modal -->
+                        <form action="{{ route('toolman.peminjaman.approve', $peminjaman->id) }}" method="POST" class="inline"
+                              data-confirm="true"
+                              data-title="Serahkan Barang Fisik"
+                              data-message="Apakah Anda yakin ingin menyerahkan barang fisik tiket <b>#PINJAM-{{ str_pad($peminjaman->id, 4, '0', STR_PAD_LEFT) }}</b> kepada <b>{{ addslashes($peminjaman->user->name ?? 'Peminjam') }}</b>? Stok fisik barang akan dipotong secara resmi."
+                              data-type="success"
+                              data-confirm-text="Ya, Serahkan Barang Fisik">
                             @csrf
                             <button type="submit"
                                 class="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                 </svg>
-                                Approve & Serahkan Barang
+                                Serahkan Barang Fisik
                             </button>
                         </form>
                     </div>

@@ -87,6 +87,11 @@
                                     class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                     Menunggu Acc
                                 </span>
+                            @elseif ($pinjam->status === 'disetujui' || $pinjam->status === 'disetujui_jadwal')
+                                <span
+                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                    Jadwal Disetujui
+                                </span>
                             @elseif ($pinjam->status === 'active' || $pinjam->status === 'aktif')
                                 <span
                                     class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -124,7 +129,7 @@
                                     <tr>
                                         <th class="px-4 py-2 text-left font-medium text-gray-600">Nama Barang</th>
                                         <th class="px-4 py-2 text-center font-medium text-gray-600">Jml Diminta</th>
-                                        <th class="px-4 py-2 text-center font-medium text-gray-600">Stok Tersedia</th>
+                                        <th class="px-4 py-2 text-center font-medium text-gray-600">Sisa Kuota Bebas</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 bg-white">
@@ -133,16 +138,16 @@
                                             <td class="px-4 py-2 text-gray-900 font-medium">
                                                 {{ $detail->barang->nama ?? '-' }}
                                                 <span class="text-xs text-gray-500 font-normal ml-1">
-                                                    ({{ $detail->barang && $detail->barang->jenis_barang === 'bhp' ? 'Bahan Habis Pakai' : 'Inventaris' }})
+                                                     ({{ $detail->barang && $detail->barang->jenis_barang === 'bhp' ? 'Bahan Habis Pakai' : 'Inventaris' }})
                                                 </span>
                                             </td>
                                             <td class="px-4 py-2 text-center font-bold text-gray-900">
                                                 {{ $detail->jumlah }} {{ $detail->barang->satuan ?? 'Unit' }}
                                             </td>
                                             <td
-                                                class="px-4 py-2 text-center font-medium {{ ($detail->barang->stok_tersedia ?? 0) < $detail->jumlah ? 'text-red-600 font-bold' : 'text-green-600' }}">
-                                                {{ $detail->barang->stok_tersedia ?? 0 }}
-                                                {{ $detail->barang->satuan ?? 'Unit' }}
+                                                class="px-4 py-2 text-center font-medium {{ ($detail->barang->stok_bebas ?? 0) < $detail->jumlah ? 'text-red-600 font-bold' : 'text-green-600' }}">
+                                                {{ $detail->barang->stok_bebas ?? 0 }} {{ $detail->barang->satuan ?? 'Unit' }}
+                                                <span class="text-[11px] text-gray-400 block">(Fisik: {{ $detail->barang->stok_tersedia ?? 0 }})</span>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -194,20 +199,73 @@
                                 </button>
                             </form>
 
-                            <!-- Form Approve & Serahkan -->
+                            <!-- Form Setujui Jadwal -->
+                            <form action="{{ route('toolman.peminjaman.setujui-jadwal', $pinjam->id) }}" method="POST" class="inline"
+                                  data-confirm="true"
+                                  data-title="Setujui Jadwal Peminjaman"
+                                  data-message="Apakah Anda yakin ingin menyetujui jadwal peminjaman tiket <b>#PINJAM-{{ str_pad($pinjam->id, 4, '0', STR_PAD_LEFT) }}</b>? Kuota barang akan diamankan untuk jadwal peminjam."
+                                  data-type="info"
+                                  data-confirm-text="Ya, Setujui Jadwal">
+                                @csrf
+                                <button type="submit"
+                                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors flex items-center gap-1.5">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    Setujui Jadwal
+                                </button>
+                            </form>
+
+                            <!-- Form Approve & Serahkan Langsung -->
                             <form action="{{ route('toolman.peminjaman.approve', $pinjam->id) }}" method="POST" class="inline"
                                   data-confirm="true"
                                   data-title="Setujui Peminjaman & Serahkan Barang"
-                                  data-message="Apakah Anda yakin ingin menyetujui peminjaman tiket <b>#PINJAM-{{ str_pad($pinjam->id, 4, '0', STR_PAD_LEFT) }}</b> untuk <b>{{ addslashes($pinjam->user->name ?? 'Peminjam') }}</b>? Pastikan ketersediaan fisik alat & bahan sebelum diserahkan."
+                                  data-message="Apakah Anda yakin ingin menyetujui peminjaman tiket <b>#PINJAM-{{ str_pad($pinjam->id, 4, '0', STR_PAD_LEFT) }}</b> dan langsung menyerahkan barang fisik sekarang?"
                                   data-type="success"
-                                  data-confirm-text="Ya, Setujui & Serahkan">
+                                  data-confirm-text="Ya, Serahkan Barang">
                                 @csrf
                                 <button type="submit"
                                     class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors flex items-center gap-1.5">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                     </svg>
-                                    Approve & Serahkan
+                                    Serahkan Langsung
+                                </button>
+                            </form>
+                        @elseif ($pinjam->status === 'disetujui' || $pinjam->status === 'disetujui_jadwal')
+                            <!-- Tombol Batalkan / Tolak -->
+                            <form action="{{ route('toolman.peminjaman.reject', $pinjam->id) }}" method="POST" class="inline"
+                                  data-confirm="true"
+                                  data-title="Batalkan Persetujuan Jadwal"
+                                  data-message="Berikan alasan pembatalan tiket <b>#PINJAM-{{ str_pad($pinjam->id, 4, '0', STR_PAD_LEFT) }}</b>. Kuota yang dipesan akan dilepas kembali:"
+                                  data-type="danger"
+                                  data-confirm-text="Batalkan Tiket"
+                                  data-with-input="true"
+                                  data-input-name="alasan_penolakan"
+                                  data-input-label="Alasan Pembatalan (Wajib):"
+                                  data-input-placeholder="Contoh: Peminjam membatalkan praktikum..."
+                                  data-input-required="true">
+                                @csrf
+                                <button type="submit"
+                                    class="px-4 py-2 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-sm font-medium rounded-lg shadow-sm transition-colors">
+                                    Batalkan Tiket
+                                </button>
+                            </form>
+
+                            <!-- Form Serahkan Barang Fisik -->
+                            <form action="{{ route('toolman.peminjaman.approve', $pinjam->id) }}" method="POST" class="inline"
+                                  data-confirm="true"
+                                  data-title="Serahkan Barang Fisik"
+                                  data-message="Apakah Anda yakin ingin menyerahkan barang fisik tiket <b>#PINJAM-{{ str_pad($pinjam->id, 4, '0', STR_PAD_LEFT) }}</b> kepada <b>{{ addslashes($pinjam->user->name ?? 'Peminjam') }}</b>? Stok fisik barang akan dipotong."
+                                  data-type="success"
+                                  data-confirm-text="Ya, Serahkan Barang">
+                                @csrf
+                                <button type="submit"
+                                    class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors flex items-center gap-1.5">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Serahkan Barang Fisik
                                 </button>
                             </form>
                         @endif

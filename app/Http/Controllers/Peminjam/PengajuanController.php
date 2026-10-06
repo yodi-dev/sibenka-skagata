@@ -58,19 +58,38 @@ class PengajuanController extends Controller
             $bengkelId = $user->bengkel_id ?? Bengkel::first()?->id;
         }
 
-        // Validasi input keperluan & batas waktu
+        // Validasi input keperluan, jadwal pinjam (maks. 14 hari ke depan), & batas waktu
+        $maxAdvanceDate = now()->addDays(14)->endOfDay();
+        $isTanggalPinjamFilled = $request->filled('tanggal_pinjam');
         $request->validate([
             'keperluan' => 'required|string|min:5|max:1000',
-            'batas_kembali' => 'nullable|date|after:now',
+            'tanggal_pinjam' => [
+                'nullable',
+                'date',
+                'after_or_equal:' . now()->subMinutes(15)->format('Y-m-d H:i:s'),
+                'before_or_equal:' . $maxAdvanceDate->format('Y-m-d H:i:s'),
+            ],
+            'batas_kembali' => [
+                'nullable',
+                'date',
+                $isTanggalPinjamFilled ? 'after:tanggal_pinjam' : 'after_or_equal:' . now()->subMinutes(5)->format('Y-m-d H:i:s'),
+            ],
         ], [
             'keperluan.required' => 'Keperluan peminjaman wajib diisi.',
             'keperluan.min' => 'Keperluan peminjaman minimal 5 karakter.',
-            'batas_kembali.after' => 'Batas waktu pengembalian tidak boleh di masa lampau.',
+            'tanggal_pinjam.after_or_equal' => 'Jadwal peminjaman/pengambilan tidak boleh di masa lampau.',
+            'tanggal_pinjam.before_or_equal' => 'Peminjaman maksimal dapat diajukan 14 hari sebelum hari pelaksanaan praktikum.',
+            'batas_kembali.after' => 'Batas waktu pengembalian harus setelah jadwal peminjaman.',
         ]);
 
         try {
             return DB::transaction(function () use ($user, $bengkelId, $rawItems, $request) {
                 $hasInventaris = false;
+
+                // Tentukan tanggal rencana pinjam/ambil
+                $tanggalPinjam = $request->filled('tanggal_pinjam')
+                    ? \Carbon\Carbon::parse($request->input('tanggal_pinjam'))
+                    : now();
 
                 // Validasi setiap barang
                 $itemsToInsert = [];
@@ -85,8 +104,8 @@ class PengajuanController extends Controller
                         throw new \Exception("Barang dengan ID {$barangId} tidak ditemukan pada bengkel terpilih.");
                     }
 
-                    if ($qty > $barang->stok_tersedia) {
-                        throw new \Exception("Stok untuk barang '{$barang->nama}' tidak mencukupi (tersedia: {$barang->stok_tersedia}, diminta: {$qty}).");
+                    if ($qty > $barang->stok_bebas) {
+                        throw new \Exception("Stok untuk barang '{$barang->nama}' tidak mencukupi untuk peminjaman baru (sisa kuota bebas: {$barang->stok_bebas}, diminta: {$qty}).");
                     }
 
                     if ($barang->jenis_barang === 'inventaris') {
@@ -104,18 +123,24 @@ class PengajuanController extends Controller
                 }
 
                 // Batas kembali: Wajib untuk tiket yang berisi barang inventaris
-                $batasKembali = $request->input('batas_kembali');
+                $batasKembali = $request->filled('batas_kembali')
+                    ? \Carbon\Carbon::parse($request->input('batas_kembali'))
+                    : null;
+
                 if ($hasInventaris && !$batasKembali) {
-                    // Default cerdas: jika lewat jam 15:00, default ke besok 16:00
-                    $batasKembali = now()->hour >= 15
-                        ? now()->addDay()->setTime(16, 0)
-                        : now()->setTime(16, 0);
+                    $batasKembali = (clone $tanggalPinjam)->hour >= 15
+                        ? (clone $tanggalPinjam)->addDay()->setTime(16, 0)
+                        : (clone $tanggalPinjam)->setTime(16, 0);
+
+                    if ($batasKembali <= $tanggalPinjam) {
+                        $batasKembali = (clone $tanggalPinjam)->addHours(4);
+                    }
                 }
 
                 $peminjaman = Peminjaman::create([
                     'user_id' => $user->id,
                     'bengkel_id' => $bengkelId,
-                    'tanggal_pinjam' => now(),
+                    'tanggal_pinjam' => $tanggalPinjam,
                     'batas_kembali' => $hasInventaris ? $batasKembali : null,
                     'keperluan' => $request->input('keperluan'),
                     'status' => 'pending',

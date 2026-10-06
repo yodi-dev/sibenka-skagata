@@ -30,7 +30,11 @@ class DashboardController extends Controller
             ->count();
 
         $countPending = Peminjaman::where('user_id', $user->id)
-            ->where('status', 'pending')
+            ->whereIn('status', ['pending', 'menunggu_acc'])
+            ->count();
+
+        $countDisetujui = Peminjaman::where('user_id', $user->id)
+            ->whereIn('status', ['disetujui', 'disetujui_jadwal'])
             ->count();
 
         $countMenungguPengecekan = Peminjaman::where('user_id', $user->id)
@@ -45,12 +49,12 @@ class DashboardController extends Controller
             ->where('status', 'terlambat')
             ->exists();
 
-        // 3. Tiket Aktif & Pengembalian Terdekat (Maksimal 5 item)
+        // 3. Tiket Aktif, Jadwal Disetujui, & Pengembalian Terdekat (Maksimal 5 item)
         $peminjamanAktif = Peminjaman::with(['bengkel', 'detailPeminjamans.barang'])
             ->where('user_id', $user->id)
-            ->whereIn('status', ['active', 'terlambat', 'menunggu_pengecekan'])
-            ->orderByRaw("CASE WHEN status = 'terlambat' THEN 0 WHEN status = 'active' THEN 1 ELSE 2 END")
-            ->orderBy('batas_kembali', 'asc')
+            ->whereIn('status', ['active', 'terlambat', 'menunggu_pengecekan', 'disetujui_jadwal', 'disetujui'])
+            ->orderByRaw("CASE WHEN status = 'terlambat' THEN 0 WHEN status = 'active' THEN 1 WHEN status IN ('disetujui', 'disetujui_jadwal') THEN 2 ELSE 3 END")
+            ->orderBy('tanggal_pinjam', 'asc')
             ->take(5)
             ->get();
 
@@ -59,6 +63,7 @@ class DashboardController extends Controller
             'bengkel',
             'countActive',
             'countPending',
+            'countDisetujui',
             'countMenungguPengecekan',
             'countSelesai',
             'hasOverdue',

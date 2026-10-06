@@ -200,8 +200,9 @@
             @forelse ($barangs as $item)
                 @php
                     $isInventaris = $item->jenis_barang === 'inventaris';
-                    $isLowStock = $item->stok_tersedia > 0 && $item->stok_tersedia <= $item->minimum_stok;
-                    $isOutOfStock = $item->stok_tersedia <= 0;
+                    $stokTersediaBebas = $item->stok_bebas;
+                    $isLowStock = $stokTersediaBebas > 0 && $stokTersediaBebas <= $item->minimum_stok;
+                    $isOutOfStock = $stokTersediaBebas <= 0;
                 @endphp
 
                 <div
@@ -224,7 +225,9 @@
                                 nama: '{{ addslashes($item->nama) }}',
                                 tipe: '{{ $item->jenis_barang }}',
                                 satuan: '{{ $item->satuan }}',
-                                stok: {{ $item->stok_tersedia }},
+                                stok: {{ $item->stok_bebas }},
+                                stokFisik: {{ $item->stok_tersedia }},
+                                stokReserved: {{ $item->stok_reserved }},
                                 stokTotal: {{ $item->stok_total }},
                                 stokDipinjam: {{ $item->stok_dipinjam }},
                                 stokRusak: {{ $item->stok_rusak }},
@@ -250,7 +253,9 @@
                             nama: '{{ addslashes($item->nama) }}',
                             tipe: '{{ $item->jenis_barang }}',
                             satuan: '{{ $item->satuan }}',
-                            stok: {{ $item->stok_tersedia }},
+                            stok: {{ $item->stok_bebas }},
+                            stokFisik: {{ $item->stok_tersedia }},
+                            stokReserved: {{ $item->stok_reserved }},
                             stokTotal: {{ $item->stok_total }},
                             stokDipinjam: {{ $item->stok_dipinjam }},
                             stokRusak: {{ $item->stok_rusak }},
@@ -265,23 +270,23 @@
 
                         <!-- Stock Status -->
                         <div class="mt-auto pt-1">
-                            @if ($item->stok_tersedia > $item->minimum_stok)
+                            @if ($item->stok_bebas > $item->minimum_stok)
                                 <div
                                     class="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold text-emerald-700">
                                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                                    <span class="truncate">{{ $item->stok_tersedia }} {{ $item->satuan }}</span>
+                                    <span class="truncate">{{ $item->stok_bebas }} {{ $item->satuan }} bebas</span>
                                 </div>
                             @elseif ($isLowStock)
                                 <div
                                     class="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold text-amber-700">
                                     <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
-                                    <span class="truncate">Sisa {{ $item->stok_tersedia }} {{ $item->satuan }}</span>
+                                    <span class="truncate">Sisa {{ $item->stok_bebas }} {{ $item->satuan }} bebas</span>
                                 </div>
                             @else
                                 <div
                                     class="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-gray-400">
                                     <span class="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0"></span>
-                                    <span>Habis</span>
+                                    <span>{{ $item->stok_tersedia > 0 ? 'Habis (Dipesan)' : 'Habis' }}</span>
                                 </div>
                             @endif
                         </div>
@@ -289,7 +294,7 @@
 
                     <!-- Card Action Footer -->
                     <div class="px-2.5 pb-2.5 sm:px-3 sm:pb-3 pt-0">
-                        @if ($item->stok_tersedia > 0)
+                        @if ($item->stok_bebas > 0)
                             <template x-if="!isInCart({{ $item->id }})">
                                 <button
                                     @click="addToCart({
@@ -299,7 +304,7 @@
                                         nama: '{{ addslashes($item->nama) }}',
                                         tipe: '{{ $item->jenis_barang }}',
                                         satuan: '{{ $item->satuan }}',
-                                        stok: {{ $item->stok_tersedia }}
+                                        stok: {{ $item->stok_bebas }}
                                     }, 1)"
                                     type="button"
                                     class="w-full py-1.5 sm:py-2 px-2 rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center justify-center gap-1 active:scale-95 {{ $isInventaris ? 'bg-primary-600 hover:bg-primary-700 text-white' : 'bg-amber-600 hover:bg-amber-700 text-white' }}">
@@ -321,7 +326,7 @@
                                     <span class="text-xs font-bold text-primary-900"
                                         x-text="getCartQty({{ $item->id }})"></span>
                                     <button @click="increaseQty({{ $item->id }})"
-                                        :disabled="getCartQty({{ $item->id }}) >= {{ $item->stok_tersedia }}"
+                                        :disabled="getCartQty({{ $item->id }}) >= {{ $item->stok_bebas }}"
                                         class="w-6 h-6 rounded-lg bg-white text-primary-700 font-bold hover:bg-primary-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center shadow-2xs text-xs">
                                         +
                                     </button>
@@ -330,7 +335,7 @@
                         @else
                             <button disabled
                                 class="w-full py-1.5 sm:py-2 px-2 bg-gray-100 text-gray-400 text-xs font-medium rounded-xl cursor-not-allowed text-center">
-                                Habis
+                                {{ $item->stok_tersedia > 0 ? 'Habis (Dipesan)' : 'Habis' }}
                             </button>
                         @endif
                     </div>
@@ -480,11 +485,16 @@
                                 <div class="border border-gray-200 rounded-xl p-3.5 space-y-2">
                                     <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">Informasi
                                         Ketersediaan Fisik:</h4>
-                                    <div class="grid grid-cols-3 gap-2 text-center pt-1">
+                                    <div class="grid grid-cols-4 gap-2 text-center pt-1">
                                         <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-2">
-                                            <span class="text-[10px] text-emerald-800 font-semibold block">Tersedia</span>
+                                            <span class="text-[10px] text-emerald-800 font-semibold block">Sisa Bebas</span>
                                             <span class="text-base font-black text-emerald-900"
                                                 x-text="activeItem.stok"></span>
+                                        </div>
+                                        <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-2">
+                                            <span class="text-[10px] text-indigo-800 font-semibold block">Dipesan</span>
+                                            <span class="text-base font-black text-indigo-900"
+                                                x-text="activeItem.stokReserved || 0"></span>
                                         </div>
                                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-2">
                                             <span class="text-[10px] text-blue-800 font-semibold block">Dipinjam</span>
@@ -781,61 +791,50 @@
                                 </div>
                             </div>
 
-                            <!-- Rule Jadwal Pengembalian -->
-                            <template x-if="cartInventarisCount > 0">
-                                <div class="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 space-y-3 text-xs">
-                                    <div class="flex items-center gap-2 text-amber-900 font-bold">
-                                        <svg class="w-4 h-4 text-amber-700 shrink-0" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <span>Jadwal Pengembalian Alat Inventaris</span>
-                                    </div>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div>
-                                            <label class="block text-[11px] font-semibold text-gray-700">Waktu
-                                                Pinjam:</label>
-                                            <input type="text" value="Hari Ini (Sekarang)" readonly
-                                                class="mt-1 block w-full text-xs bg-white border-gray-300 rounded-lg shadow-2xs font-medium text-gray-700">
-                                        </div>
-                                        <div>
-                                            <label class="block text-[11px] font-semibold text-gray-700">Batas Pengembalian
-                                                (Wajib):</label>
-                                            @php
-                                                $defaultBatasKembali =
-                                                    now()->hour >= 15
-                                                        ? now()->addDay()->setTime(16, 0)->format('Y-m-d\TH:i')
-                                                        : now()->setTime(16, 0)->format('Y-m-d\TH:i');
-                                            @endphp
-                                            <input type="datetime-local" name="batas_kembali"
-                                                min="{{ now()->format('Y-m-d\TH:i') }}"
-                                                value="{{ $defaultBatasKembali }}"
-                                                class="mt-1 block w-full text-xs bg-white border-amber-300 text-amber-900 font-bold rounded-lg shadow-2xs focus:ring-primary-500 focus:border-primary-500">
-                                        </div>
-                                    </div>
-                                    <p class="text-[11px] text-amber-800 font-medium">
-                                        *Aturan Bengkel: Alat inventaris wajib dikembalikan sebelum jam operasional bengkel
-                                        berakhir.
-                                    </p>
-                                </div>
-                            </template>
-
-                            <template x-if="cartInventarisCount === 0 && cartBahanCount > 0">
-                                <div
-                                    class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900 flex items-start gap-2.5">
-                                    <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none"
-                                        stroke="currentColor" viewBox="0 0 24 24">
+                            <!-- Bagian Pengaturan Jadwal Peminjaman -->
+                            <div class="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 space-y-3 text-xs">
+                                <div class="flex items-center gap-2 text-amber-950 font-bold">
+                                    <svg class="w-4 h-4 text-amber-700 shrink-0" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
-                                    <div>
-                                        <strong class="font-bold block">Bahan Habis Pakai (BHP)</strong>
-                                        <p class="mt-0.5">Semua item yang kamu minta adalah Bahan Habis Pakai. Tidak
-                                            diperlukan tanggal pengembalian dan barang tidak perlu dikembalikan.</p>
-                                    </div>
+                                    <span>Jadwal Pengambilan & Batas Pengembalian</span>
                                 </div>
-                            </template>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-gray-700">
+                                            Rencana Waktu Pengambilan: <span class="text-red-500">*</span>
+                                        </label>
+                                        <input type="datetime-local" name="tanggal_pinjam"
+                                            x-model="tanggalPinjam"
+                                            @change="updateMinBatasKembali()"
+                                            min="{{ now()->format('Y-m-d\TH:i') }}"
+                                            max="{{ now()->addDays(14)->format('Y-m-d\T23:59') }}"
+                                            required
+                                            class="mt-1 block w-full text-xs bg-white border-amber-300 text-amber-950 font-semibold rounded-lg shadow-2xs focus:ring-primary-500 focus:border-primary-500">
+                                        <p class="text-[10px] text-amber-800 mt-1">Dapat dijadwalkan hingga 14 hari ke depan.</p>
+                                    </div>
+                                    <template x-if="cartInventarisCount > 0">
+                                        <div>
+                                            <label class="block text-[11px] font-semibold text-gray-700">
+                                                Batas Pengembalian (Alat): <span class="text-red-500">*</span>
+                                            </label>
+                                            <input type="datetime-local" name="batas_kembali"
+                                                x-model="batasKembali"
+                                                :min="tanggalPinjam"
+                                                required
+                                                class="mt-1 block w-full text-xs bg-white border-amber-300 text-amber-950 font-bold rounded-lg shadow-2xs focus:ring-primary-500 focus:border-primary-500">
+                                            <p class="text-[10px] text-amber-800 mt-1">Wajib dikembalikan sebelum batas waktu.</p>
+                                        </div>
+                                    </template>
+                                    <template x-if="cartInventarisCount === 0">
+                                        <div class="flex items-center text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg p-2.5">
+                                            <span>Barang Bahan Habis Pakai (BHP) tidak perlu dikembalikan.</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
 
                             <!-- Tujuan Penggunaan / Mata Pelajaran -->
                             <div>
@@ -892,6 +891,22 @@
                 cartDrawerOpen: false,
                 checkoutModalOpen: false,
                 isSubmitting: false,
+                @php
+                    $defaultBatasKembali =
+                        now()->hour >= 15
+                            ? now()->addDay()->setTime(16, 0)->format('Y-m-d\TH:i')
+                            : now()->setTime(16, 0)->format('Y-m-d\TH:i');
+                @endphp
+                tanggalPinjam: '{{ now()->format('Y-m-d\TH:i') }}',
+                batasKembali: '{{ $defaultBatasKembali }}',
+                updateMinBatasKembali() {
+                    if (this.batasKembali <= this.tanggalPinjam) {
+                        const d = new Date(this.tanggalPinjam);
+                        d.setHours(d.getHours() + 4);
+                        const pad = (n) => String(n).padStart(2, '0');
+                        this.batasKembali = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                    }
+                },
                 toast: {
                     show: false,
                     title: '',

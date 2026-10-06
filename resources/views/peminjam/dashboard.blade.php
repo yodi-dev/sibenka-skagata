@@ -351,7 +351,7 @@
                                     </span>
                                 </div>
                                 <div>
-                                    @if ($item->status === 'terlambat' || $isLate)
+                                    @if ($item->status === 'terlambat' || ($item->status !== 'disetujui' && $item->status !== 'disetujui_jadwal' && $isLate))
                                         <span
                                             class="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 border border-rose-300 animate-pulse">
                                             Terlambat
@@ -360,6 +360,11 @@
                                         <span
                                             class="text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-300">
                                             Cek Meja
+                                        </span>
+                                    @elseif (in_array($item->status, ['disetujui', 'disetujui_jadwal']))
+                                        <span
+                                            class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                            Jadwal Disetujui
                                         </span>
                                     @else
                                         <span
@@ -376,15 +381,22 @@
 
                             <div class="flex items-center justify-between gap-2 pt-1 text-xs">
                                 <div class="text-gray-500 font-medium">
-                                    Batas:
-                                    <strong
-                                        class="{{ $isLate ? 'text-rose-700 font-black' : 'text-gray-800 font-bold' }}">
-                                        @if ($item->batas_kembali)
-                                            {{ \Carbon\Carbon::parse($item->batas_kembali)->translatedFormat('d M, H:i') }}
-                                        @else
-                                            BHP
-                                        @endif
-                                    </strong>
+                                    @if (in_array($item->status, ['disetujui', 'disetujui_jadwal']))
+                                        Jadwal Ambil:
+                                        <strong class="text-emerald-700 font-black">
+                                            {{ \Carbon\Carbon::parse($item->tanggal_pinjam)->translatedFormat('d M, H:i') }}
+                                        </strong>
+                                    @else
+                                        Batas:
+                                        <strong
+                                            class="{{ $isLate ? 'text-rose-700 font-black' : 'text-gray-800 font-bold' }}">
+                                            @if ($item->batas_kembali)
+                                                {{ \Carbon\Carbon::parse($item->batas_kembali)->translatedFormat('d M, H:i') }}
+                                            @else
+                                                BHP
+                                            @endif
+                                        </strong>
+                                    @endif
                                 </div>
                                 <div class="flex items-center gap-1.5 shrink-0">
                                     <a href="{{ route('peminjam.tiket.show', $item->id) }}"

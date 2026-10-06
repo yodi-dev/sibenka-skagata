@@ -142,7 +142,7 @@ inventaris-skagata/
 ├── routes/
 │   ├── web.php                # Definisi route sistem Sibenka
 │   └── auth.php               # Route autentikasi Breeze
-├── PRD Sibenka - v2.0.md      # Dokumen Product Requirement Document (v2.0)
+├── PRD Sibenka - v2.1.md      # Dokumen Product Requirement Document (v2.1 Extended)
 └── README.md                  # Dokumentasi teknis proyek
 ```
 
