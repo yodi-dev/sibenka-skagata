@@ -274,6 +274,11 @@ class PengembalianController extends Controller
             ->where('bengkel_id', $bengkelId)
             ->findOrFail($id);
 
+        if (in_array($peminjaman->status, ['pending', 'menunggu_acc', 'ditolak'])) {
+            return redirect()->route('toolman.peminjaman.show', $id)
+                ->with('error', 'Bukti pinjam tidak dapat dicetak untuk peminjaman yang berstatus ' . ($peminjaman->status === 'ditolak' ? 'Ditolak' : 'Menunggu Persetujuan') . '.');
+        }
+
         $bengkel = $peminjaman->bengkel ?? ($user->bengkel ?? Bengkel::findOrFail($bengkelId));
 
         return view('toolman.pengembalian.print_pinjam', compact('peminjaman', 'bengkel'));
@@ -299,6 +304,11 @@ class PengembalianController extends Controller
         ])
             ->where('bengkel_id', $bengkelId)
             ->findOrFail($id);
+
+        if ($peminjaman->status !== 'selesai') {
+            return redirect()->route('toolman.peminjaman.show', $id)
+                ->with('error', 'Bukti pengembalian hanya dapat dicetak setelah barang selesai dikembalikan.');
+        }
 
         $bengkel = $peminjaman->bengkel ?? ($user->bengkel ?? Bengkel::findOrFail($bengkelId));
 

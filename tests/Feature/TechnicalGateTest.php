@@ -331,4 +331,117 @@ class TechnicalGateTest extends TestCase
         $pinjaman3->refresh();
         $this->assertEquals('pending', $pinjaman3->status);
     }
+
+    /**
+     * 6. Toolman tidak dapat mencetak bukti pinjam maupun bukti kembali untuk peminjaman yang ditolak,
+     *    dan tombol cetak di halaman detail tidak ditampilkan.
+     */
+    public function test_toolman_cannot_print_receipts_when_loan_is_rejected(): void
+    {
+        $bengkel = $this->createBengkel('B-PRINT', 'Bengkel Print Check');
+        $toolman = $this->createUser([
+            'role' => 'toolman',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+        $peminjam = $this->createUser([
+            'role' => 'peminjam',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+
+        $pinjamanDitolak = Peminjaman::create([
+            'bengkel_id' => $bengkel->id,
+            'user_id' => $peminjam->id,
+            'tanggal_pinjam' => now(),
+            'batas_kembali' => now()->addDays(1),
+            'status' => 'ditolak',
+            'keperluan' => 'Praktik Uji Ditolak',
+            'alasan_penolakan' => 'Alat sedang rusak berat',
+            'diproses_oleh' => $toolman->id,
+            'diproses_pada' => now(),
+        ]);
+
+        // Halaman detail tidak boleh menampilkan tombol cetak bukti pinjam & bukti kembali
+        $showResponse = $this->actingAs($toolman)->get(route('toolman.peminjaman.show', $pinjamanDitolak->id));
+        $showResponse->assertStatus(200);
+        $showResponse->assertDontSee('Cetak Bukti Pinjam');
+        $showResponse->assertDontSee('Cetak Bukti Pengembalian');
+
+        // Akses langsung rute print-pinjam harus ditolak & redirect
+        $printPinjamResponse = $this->actingAs($toolman)->get(route('toolman.pengembalian.print-pinjam', $pinjamanDitolak->id));
+        $printPinjamResponse->assertRedirect(route('toolman.peminjaman.show', $pinjamanDitolak->id));
+        $printPinjamResponse->assertSessionHas('error');
+
+        // Akses langsung rute print-kembali harus ditolak & redirect
+        $printKembaliResponse = $this->actingAs($toolman)->get(route('toolman.pengembalian.print-kembali', $pinjamanDitolak->id));
+        $printKembaliResponse->assertRedirect(route('toolman.peminjaman.show', $pinjamanDitolak->id));
+        $printKembaliResponse->assertSessionHas('error');
+    }
+
+    /**
+     * 7. Ketersediaan cetak bukti pinjam dan bukti kembali sesuai siklus hidup tiket peminjaman:
+     *    - Pending: Tidak ada bukti pinjam maupun kembali.
+     *    - Active: Ada bukti pinjam, tidak ada bukti kembali.
+     *    - Selesai: Ada bukti pinjam dan bukti kembali.
+     */
+    public function test_toolman_print_receipt_availability_matches_loan_lifecycle(): void
+    {
+        $bengkel = $this->createBengkel('B-LIFE', 'Bengkel Siklus');
+        $toolman = $this->createUser([
+            'role' => 'toolman',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+        $peminjam = $this->createUser([
+            'role' => 'peminjam',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+
+        // A. Status Active (Barang sedang dipinjam)
+        $pinjamanActive = Peminjaman::create([
+            'bengkel_id' => $bengkel->id,
+            'user_id' => $peminjam->id,
+            'tanggal_pinjam' => now(),
+            'batas_kembali' => now()->addDays(1),
+            'status' => 'active',
+            'keperluan' => 'Praktik Uji Aktif',
+            'diproses_oleh' => $toolman->id,
+            'diproses_pada' => now(),
+        ]);
+
+        $activeShow = $this->actingAs($toolman)->get(route('toolman.peminjaman.show', $pinjamanActive->id));
+        $activeShow->assertSee('Cetak Bukti Pinjam');
+        $activeShow->assertDontSee('Cetak Bukti Pengembalian');
+
+        $activePrintPinjam = $this->actingAs($toolman)->get(route('toolman.pengembalian.print-pinjam', $pinjamanActive->id));
+        $activePrintPinjam->assertStatus(200);
+
+        $activePrintKembali = $this->actingAs($toolman)->get(route('toolman.pengembalian.print-kembali', $pinjamanActive->id));
+        $activePrintKembali->assertRedirect(route('toolman.peminjaman.show', $pinjamanActive->id));
+        $activePrintKembali->assertSessionHas('error');
+
+        // B. Status Selesai (Barang sudah dikembalikan)
+        $pinjamanSelesai = Peminjaman::create([
+            'bengkel_id' => $bengkel->id,
+            'user_id' => $peminjam->id,
+            'tanggal_pinjam' => now()->subDays(2),
+            'batas_kembali' => now()->subDay(),
+            'status' => 'selesai',
+            'keperluan' => 'Praktik Uji Selesai',
+            'diproses_oleh' => $toolman->id,
+            'diproses_pada' => now()->subDays(2),
+        ]);
+
+        $selesaiShow = $this->actingAs($toolman)->get(route('toolman.peminjaman.show', $pinjamanSelesai->id));
+        $selesaiShow->assertSee('Cetak Bukti Pinjam');
+        $selesaiShow->assertSee('Cetak Bukti Pengembalian');
+
+        $selesaiPrintPinjam = $this->actingAs($toolman)->get(route('toolman.pengembalian.print-pinjam', $pinjamanSelesai->id));
+        $selesaiPrintPinjam->assertStatus(200);
+
+        $selesaiPrintKembali = $this->actingAs($toolman)->get(route('toolman.pengembalian.print-kembali', $pinjamanSelesai->id));
+        $selesaiPrintKembali->assertStatus(200);
+    }
 }
