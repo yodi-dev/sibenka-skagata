@@ -183,7 +183,7 @@
                                   data-type="danger"
                                   data-confirm-text="Tolak Permohonan"
                                   data-with-input="true"
-                                  data-input-name="alasan"
+                                  data-input-name="alasan_penolakan"
                                   data-input-label="Alasan Penolakan (Wajib):"
                                   data-input-placeholder="Contoh: Alat sedang dalam perbaikan berkala / jadwal bentrok..."
                                   data-input-required="true">
@@ -228,63 +228,4 @@
         </div>
     </div>
 
-    <!-- Modal Tolak Pengajuan -->
-    <div id="rejectModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeRejectModal()"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <form id="rejectForm" method="POST" action="">
-                    @csrf
-                    <div class="bg-white px-6 pt-6 pb-4">
-                        <div class="sm:flex sm:items-start gap-4">
-                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10 text-red-600">
-                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                                </svg>
-                            </div>
-                            <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                                <h3 class="text-lg font-bold text-gray-900" id="modal-title">Tolak Pengajuan Peminjaman</h3>
-                                <p class="text-sm text-gray-500 mt-1" id="rejectPeminjamName">
-                                    Berikan alasan penolakan agar peminjam dapat memahami alasan pembatalan.
-                                </p>
-                                <div class="mt-4">
-                                    <label for="alasan_penolakan" class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                                        Alasan Penolakan <span class="text-red-500">*</span>
-                                    </label>
-                                    <textarea name="alasan_penolakan" id="alasan_penolakan" rows="3" required
-                                        placeholder="Contoh: Alat sedang proses maintenance berkala atau peruntukan praktikum belum disetujui guru pembimbing."
-                                        class="w-full text-sm border-gray-300 rounded-xl shadow-sm focus:ring-red-500 focus:border-red-500 p-3"></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 px-6 py-3.5 flex flex-row-reverse gap-3">
-                        <button type="submit"
-                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors">
-                            Konfirmasi Tolak
-                        </button>
-                        <button type="button" onclick="closeRejectModal()"
-                            class="px-4 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium rounded-xl transition-colors">
-                            Batal
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function openRejectModal(id, peminjamName) {
-            const form = document.getElementById('rejectForm');
-            form.action = "{{ url('/toolman/peminjaman') }}/" + id + "/reject";
-            document.getElementById('rejectPeminjamName').innerText = "Pengajuan oleh: " + peminjamName + ". Masukkan alasan penolakan:";
-            document.getElementById('alasan_penolakan').value = '';
-            document.getElementById('rejectModal').classList.remove('hidden');
-        }
-
-        function closeRejectModal() {
-            document.getElementById('rejectModal').classList.add('hidden');
-        }
-    </script>
 @endsection

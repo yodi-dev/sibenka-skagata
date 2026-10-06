@@ -186,6 +186,10 @@ class PeminjamanController extends Controller
             abort(403, 'Akun Toolman Anda belum ditugaskan ke unit bengkel manapun. Silakan hubungi Waka Sarpras.');
         }
 
+        // Normalisasi input dari frontend konfirmasi modal (alasan / alasan_penolakan)
+        $alasan = $request->input('alasan_penolakan') ?? $request->input('alasan');
+        $request->merge(['alasan_penolakan' => $alasan]);
+
         $request->validate([
             'alasan_penolakan' => 'required|string|min:3|max:500',
         ], [

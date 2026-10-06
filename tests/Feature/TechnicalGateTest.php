@@ -6,6 +6,7 @@ use App\Models\Barang;
 use App\Models\Bengkel;
 use App\Models\DetailPengadaan;
 use App\Models\Pengadaan;
+use App\Models\Peminjaman;
 use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -248,5 +249,86 @@ class TechnicalGateTest extends TestCase
         ]);
 
         $this->assertEquals(429, $responseBlocked->getStatusCode(), 'POST /register must be rate limited to prevent spam/abuse.');
+    }
+
+    /**
+     * 5. Penolakan peminjaman oleh Toolman berhasil baik saat request mengirimkan 'alasan_penolakan'
+     *    maupun parameter 'alasan' dari modal konfirmasi frontend.
+     */
+    public function test_toolman_can_reject_loan_with_either_alasan_or_alasan_penolakan(): void
+    {
+        $bengkel = $this->createBengkel('B-TOLAK', 'Bengkel Uji Tolak');
+        $toolman = $this->createUser([
+            'role' => 'toolman',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+        $peminjam = $this->createUser([
+            'role' => 'peminjam',
+            'bengkel_id' => $bengkel->id,
+            'status' => 'aktif',
+        ]);
+
+        // Tiket 1: ditolak menggunakan field 'alasan_penolakan'
+        $pinjaman1 = Peminjaman::create([
+            'bengkel_id' => $bengkel->id,
+            'user_id' => $peminjam->id,
+            'tanggal_pinjam' => now(),
+            'batas_kembali' => now()->addDays(1),
+            'status' => 'pending',
+            'keperluan' => 'Praktik Uji 1',
+        ]);
+
+        $response1 = $this->actingAs($toolman)->post(route('toolman.peminjaman.reject', $pinjaman1->id), [
+            'alasan_penolakan' => 'Barang sedang dalam perawatan berkala',
+        ]);
+
+        $response1->assertRedirect(route('toolman.peminjaman.index', ['tab' => 'riwayat']));
+        $response1->assertSessionHas('success');
+        $pinjaman1->refresh();
+        $this->assertEquals('ditolak', $pinjaman1->status);
+        $this->assertEquals('Barang sedang dalam perawatan berkala', $pinjaman1->alasan_penolakan);
+        $this->assertEquals($toolman->id, $pinjaman1->diproses_oleh);
+        $this->assertNotNull($pinjaman1->diproses_pada);
+
+        // Tiket 2: ditolak menggunakan field 'alasan' (simulasi payload frontend confirm-modal)
+        $pinjaman2 = Peminjaman::create([
+            'bengkel_id' => $bengkel->id,
+            'user_id' => $peminjam->id,
+            'tanggal_pinjam' => now(),
+            'batas_kembali' => now()->addDays(1),
+            'status' => 'menunggu_acc',
+            'keperluan' => 'Praktik Uji 2',
+        ]);
+
+        $response2 = $this->actingAs($toolman)->post(route('toolman.peminjaman.reject', $pinjaman2->id), [
+            'alasan' => 'Jadwal peminjaman bentrok dengan praktikum kelas utama',
+        ]);
+
+        $response2->assertRedirect(route('toolman.peminjaman.index', ['tab' => 'riwayat']));
+        $response2->assertSessionHas('success');
+        $pinjaman2->refresh();
+        $this->assertEquals('ditolak', $pinjaman2->status);
+        $this->assertEquals('Jadwal peminjaman bentrok dengan praktikum kelas utama', $pinjaman2->alasan_penolakan);
+        $this->assertEquals($toolman->id, $pinjaman2->diproses_oleh);
+        $this->assertNotNull($pinjaman2->diproses_pada);
+
+        // Tiket 3: gagal validasi jika alasan kosong atau kurang dari 3 karakter
+        $pinjaman3 = Peminjaman::create([
+            'bengkel_id' => $bengkel->id,
+            'user_id' => $peminjam->id,
+            'tanggal_pinjam' => now(),
+            'batas_kembali' => now()->addDays(1),
+            'status' => 'pending',
+            'keperluan' => 'Praktik Uji 3',
+        ]);
+
+        $response3 = $this->actingAs($toolman)->post(route('toolman.peminjaman.reject', $pinjaman3->id), [
+            'alasan' => 'ab', // Kurang dari 3 karakter
+        ]);
+
+        $response3->assertSessionHasErrors('alasan_penolakan');
+        $pinjaman3->refresh();
+        $this->assertEquals('pending', $pinjaman3->status);
     }
 }
