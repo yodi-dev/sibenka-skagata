@@ -20,18 +20,6 @@
                 batasMinimum: 1,
                 // Estimasi Harga
                 estimasiHarga: '{{ old('estimasi_harga', '') }}',
-                // Import Excel Modal State
-                showImportModal: false,
-                importLoading: false,
-                importFileName: '',
-                handleImportFileSelect(event) {
-                    const file = event.target.files[0];
-                    if (file) {
-                        this.importFileName = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
-                    } else {
-                        this.importFileName = '';
-                    }
-                },
                 generateKode() {
                     const randomNum = Math.floor(Math.random() * 900) + 100;
                     if (this.tipe === 'inventaris') {
@@ -376,15 +364,6 @@
                     jurusan.</p>
             </div>
             <div class="flex items-center gap-2.5">
-                <button type="button" @click="showImportModal = true"
-                    class="inline-flex items-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors gap-2">
-                    <svg class="w-4 h-4 text-emerald-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                        </path>
-                    </svg>
-                    <span>Import dari Excel</span>
-                </button>
                 <a href="{{ route('toolman.barang.index') }}"
                     class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg shadow-sm transition-colors">
                     <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1287,163 +1266,6 @@
 
             </div>
         </div>
-
-        <!-- ================================================================= -->
-        <!-- MODAL IMPORT DATA BARANG DARI EXCEL                              -->
-        <!-- ================================================================= -->
-        <template x-teleport="body">
-            <div x-show="showImportModal" x-cloak class="relative z-[9999]" aria-labelledby="modal-import-title"
-                role="dialog" aria-modal="true">
-                <!-- Full Screen Backdrop Overlay -->
-                <div x-show="showImportModal" x-transition:enter="ease-out duration-300"
-                    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-                    x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
-                    x-transition:leave-end="opacity-0"
-                    class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity"
-                    @click="if (!importLoading) showImportModal = false">
-                </div>
-
-                <!-- Modal Dialog Positioner -->
-                <div class="fixed inset-0 z-10 overflow-y-auto">
-                    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-                        <div x-show="showImportModal" x-transition:enter="ease-out duration-300"
-                            x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                            x-transition:leave="ease-in duration-200"
-                            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                            x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                            @click.away="if (!importLoading) showImportModal = false"
-                            class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl border border-gray-100 transition-all sm:my-8 sm:w-full sm:max-w-lg p-6 space-y-4">
-
-                            <!-- Modal Header -->
-                            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
-                                <div class="flex items-center gap-2.5">
-                                    <div
-                                        class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-xs">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                                            </path>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h4 class="text-base font-bold text-gray-900" id="modal-import-title">Import Data
-                                            Barang</h4>
-                                        <p class="text-xs text-gray-500 mt-0.5">Tambah banyak barang sekaligus menggunakan
-                                            file Excel/CSV.</p>
-                                    </div>
-                                </div>
-                                <button type="button" @click="showImportModal = false" :disabled="importLoading"
-                                    class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <!-- Template Download Card -->
-                            <div
-                                class="p-3.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-center justify-between gap-3">
-                                <div class="space-y-0.5">
-                                    <div class="text-xs font-semibold text-emerald-900">Belum punya format file?</div>
-                                    <p class="text-[11px] text-emerald-700 leading-relaxed">Unduh template resmi yang telah
-                                        disesuaikan dengan bengkel Anda.</p>
-                                </div>
-                                <a href="{{ route('toolman.barang.template-excel') }}"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors shrink-0">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                                    </svg>
-                                    <span>Unduh Template</span>
-                                </a>
-                            </div>
-
-                            <!-- Import Form -->
-                            <form action="{{ route('toolman.barang.import') }}" method="POST"
-                                enctype="multipart/form-data" @submit="importLoading = true" class="space-y-4">
-                                @csrf
-
-                                <!-- File Upload Area -->
-                                <div>
-                                    <label
-                                        class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                                        Pilih File Excel / CSV <span class="text-red-500">*</span>
-                                    </label>
-                                    <div
-                                        class="relative border-2 border-dashed border-gray-300 hover:border-emerald-500 rounded-xl p-5 text-center transition-colors bg-gray-50/50 hover:bg-emerald-50/20">
-                                        <input type="file" name="file" id="excel_file" required
-                                            accept=".xlsx,.csv" @change="handleImportFileSelect($event)"
-                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                                        <div class="space-y-1.5">
-                                            <div
-                                                class="w-10 h-10 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
-                                                    </path>
-                                                </svg>
-                                            </div>
-                                            <div class="text-xs text-gray-600">
-                                                <span class="font-semibold text-emerald-600 hover:underline">Klik untuk
-                                                    telusuri</span> atau seret file ke sini
-                                            </div>
-                                            <p class="text-[10px] text-gray-400">Format yang didukung: .xlsx atau .csv
-                                                (Maksimal 10MB)</p>
-                                        </div>
-                                    </div>
-                                    <div x-show="importFileName" x-cloak
-                                        class="mt-2 flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
-                                        <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none"
-                                            stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        <span class="truncate font-medium" x-text="importFileName"></span>
-                                    </div>
-                                </div>
-
-                                <!-- Master Data Validation Notice -->
-                                <div
-                                    class="p-3 bg-blue-50/70 border border-blue-100 rounded-xl flex items-start gap-2 text-xs text-blue-800">
-                                    <svg class="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none"
-                                        stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <span><strong>Validasi Master Data:</strong> Lokasi penyimpanan, satuan, dan sumber dana
-                                        harus mengacu pada master data yang telah terdaftar di sistem.</span>
-                                </div>
-
-                                <!-- Action Buttons -->
-                                <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
-                                    <button type="button" @click="showImportModal = false" :disabled="importLoading"
-                                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50">
-                                        Batal
-                                    </button>
-                                    <button type="submit" :disabled="importLoading"
-                                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors disabled:opacity-50">
-                                        <svg x-show="importLoading"
-                                            class="animate-spin -ml-0.5 mr-1 h-3.5 w-3.5 text-white" fill="none"
-                                            viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10"
-                                                stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z">
-                                            </path>
-                                        </svg>
-                                        <span
-                                            x-text="importLoading ? 'Memproses Import...' : 'Unggah & Import Data'"></span>
-                                    </button>
-                                </div>
-                            </form>
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </template>
 
     </div>
 @endsection
