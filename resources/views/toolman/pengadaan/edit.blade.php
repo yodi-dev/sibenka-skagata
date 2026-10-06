@@ -43,7 +43,11 @@
             if (this.items.length > 1) {
                 this.items.splice(index, 1);
             } else {
-                alert('Usulan pengadaan harus memiliki minimal 1 item barang.');
+                window.openAlertModal({
+                    title: 'Batas Minimal Item',
+                    message: 'Usulan pengadaan harus memiliki minimal 1 item barang.',
+                    type: 'warning'
+                });
             }
         },
     

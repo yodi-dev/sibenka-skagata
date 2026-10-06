@@ -490,7 +490,7 @@
 
                     <!-- Modal Body / Form Fields -->
                     <form :action="resetAction" method="POST" class="p-6 sm:p-7 space-y-4"
-                        @submit="if(newPassword !== newPasswordConfirmation) { $event.preventDefault(); alert('Konfirmasi password tidak cocok dengan password baru.'); }">
+                        @submit="if(newPassword !== newPasswordConfirmation) { $event.preventDefault(); window.openAlertModal({ title: 'Validasi Password', message: 'Konfirmasi password tidak cocok dengan password baru.', type: 'warning' }); }">
                         @csrf
 
                         <!-- Password Baru -->

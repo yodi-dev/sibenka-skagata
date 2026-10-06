@@ -912,11 +912,19 @@
 
                 clearCart() {
                     if (this.cart.length === 0) return;
-                    if (confirm('Kosongkan semua barang dari keranjang peminjaman?')) {
-                        this.cart = [];
-                        this.saveCart();
-                        this.showToast('Keranjang Kosong', 'Semua barang dikeluarkan dari keranjang.', 'info');
-                    }
+                    window.openConfirmModal({
+                        title: 'Kosongkan Keranjang',
+                        message: 'Apakah Anda yakin ingin mengosongkan semua barang dari keranjang peminjaman?',
+                        subMessage: 'Seluruh alat dan bahan yang telah dipilih akan dihapus dari daftar keranjang Anda.',
+                        type: 'danger',
+                        confirmText: 'Ya, Kosongkan',
+                        cancelText: 'Batal',
+                        onConfirm: () => {
+                            this.cart = [];
+                            this.saveCart();
+                            this.showToast('Keranjang Kosong', 'Semua barang dikeluarkan dari keranjang.', 'info');
+                        }
+                    });
                 },
 
                 loadCart() {

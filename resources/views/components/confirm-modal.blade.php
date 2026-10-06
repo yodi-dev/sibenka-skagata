@@ -107,6 +107,7 @@
                 <!-- Action Buttons Footer -->
                 <div class="bg-gray-50/80 px-6 py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 border-t border-gray-100">
                     <button type="button"
+                            x-show="showCancel && !isAlert"
                             @click="cancel()"
                             class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-700 shadow-xs hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-colors"
                             x-text="cancelText">
@@ -134,6 +135,8 @@
 function universalConfirmModal() {
     return {
         isOpen: false,
+        isAlert: false,
+        showCancel: true,
         title: 'Konfirmasi Tindakan',
         message: 'Apakah Anda yakin ingin melanjutkan tindakan ini?',
         subMessage: '',
@@ -151,11 +154,13 @@ function universalConfirmModal() {
         inputError: '',
 
         open(options = {}) {
-            this.title = options.title || 'Konfirmasi Tindakan';
-            this.message = options.message || 'Apakah Anda yakin ingin melanjutkan tindakan ini?';
+            this.isAlert = options.isAlert || false;
+            this.showCancel = options.showCancel !== undefined ? options.showCancel : !this.isAlert;
+            this.title = options.title || (this.isAlert ? 'Pemberitahuan' : 'Konfirmasi Tindakan');
+            this.message = options.message || (this.isAlert ? '' : 'Apakah Anda yakin ingin melanjutkan tindakan ini?');
             this.subMessage = options.subMessage || '';
-            this.type = options.type || 'primary';
-            this.confirmText = options.confirmText || (this.type === 'danger' ? 'Ya, Hapus' : (this.type === 'success' ? 'Ya, Setujui' : 'Ya, Lanjutkan'));
+            this.type = options.type || (this.isAlert ? 'info' : 'primary');
+            this.confirmText = options.confirmText || (this.isAlert ? 'Mengerti' : (this.type === 'danger' ? 'Ya, Hapus' : (this.type === 'success' ? 'Ya, Setujui' : 'Ya, Lanjutkan')));
             this.cancelText = options.cancelText || 'Batal';
             this.formElement = options.formElement || null;
             this.onConfirmCallback = options.onConfirm || null;
@@ -225,6 +230,25 @@ window.openConfirmModal = function(options) {
     window.dispatchEvent(new CustomEvent('open-confirm-modal', { detail: options }));
 };
 
+// Global Alert Modal helper (single button info / warning alert)
+window.openAlertModal = function(options) {
+    if (typeof options === 'string') {
+        options = { message: options };
+    }
+    window.openConfirmModal({
+        title: options.title || 'Pemberitahuan',
+        message: options.message || '',
+        subMessage: options.subMessage || '',
+        type: options.type || 'warning',
+        confirmText: options.confirmText || 'Mengerti',
+        isAlert: true,
+        showCancel: false,
+        onConfirm: options.onConfirm || null
+    });
+};
+
+window.showAlert = window.openAlertModal;
+
 // Convenience helpers
 window.confirmDelete = function(formElement, title = 'Konfirmasi Hapus Data', message = 'Apakah Anda yakin ingin menghapus data ini? Tindakan ini permanen dan tidak dapat dibatalkan.') {
     window.openConfirmModal({
@@ -257,7 +281,7 @@ window.confirmCreate = function(formElement, title = 'Konfirmasi Simpan Data', m
 };
 
 // Automatic Form Interceptor for any form with data-confirm="true"
-document.addEventListener('DOMContentLoaded', () => {
+function initUniversalConfirmInterceptor() {
     document.addEventListener('submit', function(e) {
         const form = e.target;
         if (form && form.matches && form.matches('[data-confirm="true"]') && !form.dataset.confirmed) {
@@ -278,5 +302,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUniversalConfirmInterceptor);
+} else {
+    initUniversalConfirmInterceptor();
+}
 </script>
