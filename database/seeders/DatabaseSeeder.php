@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             MasterDataSeeder::class,
             UserSeeder::class,
             BarangSeeder::class,
+            DemoBengkelBarangSeeder::class,
         ]);
     }
 }
