@@ -17,6 +17,7 @@ use App\Http\Controllers\Peminjam\DashboardController as PeminjamDashboardContro
 use App\Http\Controllers\Peminjam\KatalogController as PeminjamKatalogController;
 use App\Http\Controllers\Peminjam\TiketController as PeminjamTiketController;
 use App\Http\Controllers\Peminjam\PengajuanController as PeminjamPengajuanController;
+use App\Http\Controllers\PanduanController;
 
 
 // Halaman awal langsung arahkan ke login
@@ -35,6 +36,9 @@ Route::get('/dashboard', function () {
     }
     return redirect()->route('peminjam.dashboard');
 })->middleware(['auth'])->name('dashboard');
+
+// Redirect panduan sesuai role pengguna (Dispatcher Utama)
+Route::get('/panduan', [PanduanController::class, 'index'])->middleware(['auth'])->name('panduan.index');
 
 
 // ==========================================
@@ -86,6 +90,9 @@ Route::prefix('superadmin')->name('superadmin.')->middleware(['auth', 'role:waka
     Route::get('/profile', function () {
         return redirect()->route('profile.edit');
     })->name('profile');
+
+    // Buku Panduan & SOP Superadmin
+    Route::get('/panduan', [PanduanController::class, 'superadmin'])->name('panduan');
 });
 
 
@@ -169,6 +176,9 @@ Route::prefix('toolman')->name('toolman.')->middleware(['auth', 'role:toolman'])
     Route::get('/profile', function () {
         return redirect()->route('profile.edit');
     })->name('profile');
+
+    // Buku Panduan & SOP Toolman
+    Route::get('/panduan', [PanduanController::class, 'toolman'])->name('panduan');
 });
 
 
@@ -191,6 +201,9 @@ Route::prefix('peminjam')->name('peminjam.')->middleware(['auth', 'role:peminjam
     Route::get('/profile', function () {
         return redirect()->route('profile.edit');
     })->name('profile');
+
+    // Buku Panduan & SOP Peminjam
+    Route::get('/panduan', [PanduanController::class, 'peminjam'])->name('panduan');
 });
 
 // Route untuk halaman edit profil dengan deteksi role dinamis

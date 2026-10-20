@@ -448,6 +448,31 @@
             @endif
         </div>
 
+        <!-- 1.6 Banner Panduan Pengguna & SOP Bengkel (Mobile) -->
+        <a href="{{ route('peminjam.panduan') }}"
+            class="group relative block bg-gradient-to-r from-emerald-700 via-emerald-800 to-teal-900 text-white rounded-3xl p-4 border border-emerald-600/40 shadow-xs overflow-hidden active:scale-[0.99] transition-all">
+            <div class="flex items-center justify-between gap-3 relative z-10">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-xs flex items-center justify-center shrink-0 border border-white/20">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <h4 class="font-black text-xs sm:text-sm text-white truncate">Buku Panduan & SOP Bengkel</h4>
+                        <p class="text-[11px] text-emerald-100 font-medium truncate">Alur pinjam 14 hari, kamus status, & tata tertib</p>
+                    </div>
+                </div>
+                <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-xl text-xs font-bold text-white shrink-0 border border-white/20 shadow-2xs">
+                    <span>Buka</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+                    </svg>
+                </span>
+            </div>
+        </a>
+
     </div>
 
     <!-- ========================================================================= -->
@@ -946,19 +971,29 @@
 
         <!-- 6. PANDUAN ALUR SIRKULASI BENGKEL -->
         <div class="bg-white rounded-3xl p-6 sm:p-7 border-2 border-gray-200 shadow-xs space-y-4">
-            <div class="flex items-center gap-2.5">
-                <span class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </span>
-                <div>
-                    <h3 class="text-base sm:text-lg font-black text-gray-900">Alur Peminjaman & Pengembalian Alat Bengkel
-                    </h3>
-                    <p class="text-xs sm:text-sm text-gray-600 font-medium">4 langkah mudah meminjam dan mengembalikan
-                        fasilitas praktik di SKAGATA.</p>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </span>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-black text-gray-900">Alur Peminjaman & Pengembalian Alat Bengkel
+                        </h3>
+                        <p class="text-xs sm:text-sm text-gray-600 font-medium">4 langkah mudah meminjam dan mengembalikan
+                            fasilitas praktik di SKAGATA.</p>
+                    </div>
                 </div>
+                <a href="{{ route('peminjam.panduan') }}"
+                    class="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs rounded-xl shadow-2xs transition-colors shrink-0 self-start sm:self-auto">
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <span>Buku Panduan & SOP Lengkap &rarr;</span>
+                </a>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs pt-1">

@@ -323,3 +323,4 @@ Evolusi dari versi produksi awal (v2.0) menjadi versi 2.1:
    - Penyediaan seeder demo untuk 8 unit bengkel kejuruan Skagata (BGK-D, BGK-AV, BGK-B, BGK-GU, BGK-L, BGK-M, BGK-O, BGK-TI) lengkap dengan akun Toolman, sampel barang inventaris/BHP, dan akun peminjam.
 6. **Sinkronisasi Dashboard & Antrean Kerja:**
    - Sinkronisasi status tiket terjadwal (`disetujui`) pada antrean kerja Toolman dan widget jadwal ambil dashboard peminjam.
+
